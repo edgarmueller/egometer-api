@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { UserService } from '../../users/user.service';
 import { User } from '../../users/user';
 import { GetUserDto } from '../../users/dto/get-user.dto';
+import { CreateUserDto } from '../../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -29,12 +30,12 @@ export class AuthService {
     return User.toDto(user);
   }
 
-  public async login(user) {
+  public async login(user: GetUserDto) {
     const token = await this.generateToken(user);
     return { user, token };
   }
 
-  public async create(user) {
+  public async create(user: CreateUserDto) {
     // hash the password
     const pass = await this.hashPassword(user.password);
 
@@ -43,7 +44,7 @@ export class AuthService {
     // tslint:disable-next-line: no-string-literal
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { email, roles } = newUser;
-    const dto = {
+    const dto: GetUserDto = {
       email,
       roles,
       id: newUser['_id'],
@@ -55,7 +56,7 @@ export class AuthService {
     return { user: dto, token };
   }
 
-  private async generateToken(user) {
+  async generateToken(user: GetUserDto) {
     const token = await this.jwtService.signAsync(user, { expiresIn: '1d' });
     return token;
   }
@@ -65,7 +66,7 @@ export class AuthService {
     return hash;
   }
 
-  private async comparePassword(enteredPassword, dbPassword) {
+  async comparePassword(enteredPassword, dbPassword) {
     const match = await bcrypt.compare(enteredPassword, dbPassword);
     return match;
   }

@@ -5,9 +5,6 @@ export type Role = 'ADMIN' | 'USER';
 
 export class User {
   @prop()
-  id: string;
-
-  @prop()
   firstName: string;
 
   @prop()

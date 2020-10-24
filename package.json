@@ -82,7 +82,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "testEnvironment": "node",
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "collectCoverage": true,
+    "include": ["src/**/*.{ts}"]
   }
 }
