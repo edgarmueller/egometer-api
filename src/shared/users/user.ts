@@ -1,9 +1,11 @@
-import { DocumentType, prop } from '@typegoose/typegoose';
+import { prop } from '@typegoose/typegoose';
 import { GetUserDto } from './dto/get-user.dto';
 
 export type Role = 'ADMIN' | 'USER';
 
 export class User {
+  id?: string;
+
   @prop()
   firstName: string;
 
@@ -22,10 +24,22 @@ export class User {
   @prop()
   roles: Role[];
 
-  static toDto(userDoc: DocumentType<User>): GetUserDto {
-    const user: User = userDoc.toObject();
+  @prop()
+  auth: {
+    email: {
+      valid: boolean;
+    };
+    facebook: {
+      userId: string;
+    };
+    gmail: {
+      userId: string;
+    };
+  };
+
+  static toDto(user: User): GetUserDto {
     return {
-      id: userDoc._id,
+      id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,

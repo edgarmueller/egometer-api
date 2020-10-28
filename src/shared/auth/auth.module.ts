@@ -4,15 +4,20 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { UsersModule } from '../../users/users.module';
+import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+import { TypegooseModule } from 'nestjs-typegoose';
+import { EmailVerification } from './email-verification/email-verification';
+import { ConsentRegistry } from './consent-registry/consent-registry';
 
 @Module({
   imports: [
     PassportModule,
     UsersModule,
     ConfigModule,
+    TypegooseModule.forFeature([EmailVerification]),
+    TypegooseModule.forFeature([ConsentRegistry]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
