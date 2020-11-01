@@ -10,14 +10,20 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { TypegooseModule } from 'nestjs-typegoose';
 import { EmailVerification } from './email-verification/email-verification';
 import { ConsentRegistry } from './consent-registry/consent-registry';
+import { ForgottenPassword } from './forgotten-password/forgotten-password';
+import { MailModule } from '../mail/mail.module';
+import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
+import { EmailVerificationService } from './email-verification/email-verification.service';
 
 @Module({
   imports: [
     PassportModule,
     UsersModule,
     ConfigModule,
+    MailModule,
     TypegooseModule.forFeature([EmailVerification]),
     TypegooseModule.forFeature([ConsentRegistry]),
+    TypegooseModule.forFeature([ForgottenPassword]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -27,7 +33,13 @@ import { ConsentRegistry } from './consent-registry/consent-registry';
       }),
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [
+    AuthService,
+    ForgottenPasswordService,
+    EmailVerificationService,
+    LocalStrategy,
+    JwtStrategy,
+  ],
   controllers: [AuthController],
 })
 export class AuthModule {}

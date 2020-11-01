@@ -6,6 +6,9 @@ import { UserService } from '../users/user.service';
 import { User } from '../users/user';
 import { GetUserDto } from '../users/dto/get-user.dto';
 import { ConfigService } from '@nestjs/config';
+import { MailService } from '../mail/mail.service';
+import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
+import { EmailVerificationService } from './email-verification/email-verification.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -18,11 +21,12 @@ describe('AuthService', () => {
         AuthService,
         UserService,
         ConfigService,
+        MailService,
+        ForgottenPasswordService,
+        EmailVerificationService,
         {
           provide: 'CONFIG_OPTIONS',
-          useValue: {
-            folder: 'config',
-          },
+          useValue: {},
         },
         {
           provide: getModelToken('User'),
@@ -34,6 +38,10 @@ describe('AuthService', () => {
         },
         {
           provide: getModelToken('ConsentRegistry'),
+          useValue: {},
+        },
+        {
+          provide: getModelToken('ForgottenPassword'),
           useValue: {},
         },
       ],
@@ -84,7 +92,7 @@ describe('AuthService', () => {
   });
 
   it('login should return user and token', async () => {
-    jest.spyOn(service, 'generateToken').mockResolvedValue('token');
+    jest.spyOn(service, 'generateJwtToken').mockResolvedValue('fake-token');
     const userDto: GetUserDto = {
       id: '5f8ef42d3025ec7cfa7b995d',
       email: 'foo@example.com',

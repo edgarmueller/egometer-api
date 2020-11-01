@@ -1,7 +1,7 @@
 export default () => ({
-  server: {
-    host: process.env.HOST,
-    port: process.env.PORT,
+  frontend: {
+    host: process.env.FRONTEND_HOST,
+    port: process.env.FRONTEND_PORT,
   },
   jwt: {
     secret: process.env.JWT_SECRET,

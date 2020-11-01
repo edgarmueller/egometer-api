@@ -7,6 +7,7 @@ import { User } from './user';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserAlreadyRegisteredError } from './errors/user-already-registered.error';
 import { MissingUserDataError } from './errors/missing-user-data.error';
+import { UserNotFoundError } from './errors/user-not-found.error';
 
 const SALT_ROUNDS = 10;
 
@@ -76,5 +77,26 @@ export class UserService {
       user,
     );
     return toUser(updatedDoc);
+  }
+
+  async setPassword(email: string, newPassword: string): Promise<boolean> {
+    const userFromDb = await this.userModel.findOne({ email: email });
+    if (!userFromDb) {
+      throw new UserNotFoundError('User not found');
+    }
+
+    userFromDb.password = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    await userFromDb.save();
+    return true;
+  }
+
+  async checkPassword(email: string, password: string) {
+    const user = await this.userModel.findOne({ email });
+    if (!user) {
+      throw new UserNotFoundError('User not found');
+    }
+
+    return await bcrypt.compare(password, user.password);
   }
 }

@@ -18,12 +18,20 @@ import { ContentType } from '../../common/guards/content-type.guard';
 import { LocalAuthGuard } from '../../common/guards/local-auth.guard';
 import { LoginUserDto } from './dto/login-user.dto';
 import { User } from '../users/user';
+import { EmailVerificationService } from './email-verification/email-verification.service';
+import { ResetPasswordEmailRecentlySentError } from './errors/reset-password-email-recently-sent.error';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
+import { UserAlreadyRegisteredError } from '../users/errors/user-already-registered.error';
+import { LoginEmailRecentlySentError } from './email-verification/errors/login-email-recently-sent.error';
 
 @Controller('auth')
 export class AuthController {
   constructor(
-    private authService: AuthService,
-    private userService: UserService,
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+    private readonly emailVerificationService: EmailVerificationService,
+    private readonly forgottenPasswordService: ForgottenPasswordService,
   ) {}
 
   @ApiOperation({ description: 'Login with a user' })
@@ -54,21 +62,28 @@ export class AuthController {
   @Post('signup')
   @UseGuards(ContentType('application/json'))
   async signUp(@Body() user: CreateUserDto) {
-    const newUser = await this.userService.create(user);
-    const sent = await this.authService.sendEmailVerification(newUser.email);
-    if (!sent) {
-      throw new BadRequestException('signup.error.mail-not-sent');
-    } else {
-      await this.authService.createEmailToken(newUser.email);
-      await this.authService.saveUserConsent(newUser.email);
-      return User.toDto(newUser);
+    try {
+      const newUser = await this.userService.create(user);
+      const sent = await this.emailVerificationService.sendEmailVerification(
+        newUser.email,
+      );
+      if (!sent) {
+        throw new BadRequestException('signup.error.mail-not-sent');
+      } else {
+        await this.authService.saveUserConsent(newUser.email);
+        return User.toDto(newUser);
+      }
+    } catch (error) {
+      if (error instanceof UserAlreadyRegisteredError) {
+        throw new BadRequestException(error.message);
+      }
     }
   }
 
   @Get('email/verify/:token')
-  public async verifyEmail(@Param() params): Promise<boolean> {
+  public async verifyAccountByEmail(@Param() params): Promise<boolean> {
     try {
-      await this.authService.verifyEmail(params.token);
+      await this.emailVerificationService.verifyEmail(params.token);
       return true;
       //return new ResponseSuccess('LOGIN.EMAIL_VERIFIED', isEmailVerified);
     } catch (error) {
@@ -78,77 +93,93 @@ export class AuthController {
     }
   }
 
-  //@Get('email/resend-verification/:email')
-  //public async sendEmailVerification(@Param() params): Promise<IResponse> {
-  //  try {
-  //    await this.authService.createEmailToken(params.email);
-  //    var isEmailSent = await this.authService.sendEmailVerification(
-  //      params.email,
-  //    );
-  //    if (isEmailSent) {
-  //      return new ResponseSuccess('LOGIN.EMAIL_RESENT', null);
-  //    } else {
-  //      return new ResponseError('REGISTRATION.ERROR.MAIL_NOT_SENT');
-  //    }
-  //  } catch (error) {
-  //    return new ResponseError('LOGIN.ERROR.SEND_EMAIL', error);
-  //  }
-  //}
+  @Get('forgot-password/verify/:token')
+  public async verifyIsPasswordResetLegit(@Param() params): Promise<boolean> {
+    try {
+      await this.forgottenPasswordService.findOneByToken(params.token);
+      return true;
+      //return new ResponseSuccess('LOGIN.EMAIL_VERIFIED', isEmailVerified);
+    } catch (error) {
+      console.log(error);
+      return false;
+      //return new ResponseError('LOGIN.ERROR', error);
+    }
+  }
 
-  //@Get('email/forgot-password/:email')
-  //public async sendEmailForgotPassword(@Param() params): Promise<IResponse> {
-  //  try {
-  //    var isEmailSent = await this.authService.sendEmailForgotPassword(
-  //      params.email,
-  //    );
-  //    if (isEmailSent) {
-  //      return new ResponseSuccess('LOGIN.EMAIL_RESENT', null);
-  //    } else {
-  //      return new ResponseError('REGISTRATION.ERROR.MAIL_NOT_SENT');
-  //    }
-  //  } catch (error) {
-  //    return new ResponseError('LOGIN.ERROR.SEND_EMAIL', error);
-  //  }
-  //}
+  @Get('resend-verification/:email')
+  public async sendEmailVerification(@Param() params): Promise<any> {
+    try {
+      const isEmailSent = await this.emailVerificationService.sendEmailVerification(
+        params.email,
+      );
+      if (!isEmailSent) {
+        throw new LoginEmailRecentlySentError('Mail already has been sent.');
+      }
+    } catch (error) {
+      return new Error('LOGIN.ERROR.SEND_EMAIL');
+    }
+  }
 
-  //@Post('email/reset-password')
-  //@HttpCode(HttpStatus.OK)
-  //public async setNewPassord(
-  //  @Body() resetPassword: ResetPasswordDto,
-  //): Promise<IResponse> {
-  //  try {
-  //    var isNewPasswordChanged: boolean = false;
-  //    if (resetPassword.email && resetPassword.currentPassword) {
-  //      var isValidPassword = await this.authService.checkPassword(
-  //        resetPassword.email,
-  //        resetPassword.currentPassword,
-  //      );
-  //      if (isValidPassword) {
-  //        isNewPasswordChanged = await this.userService.setPassword(
-  //          resetPassword.email,
-  //          resetPassword.newPassword,
-  //        );
-  //      } else {
-  //        return new ResponseError('RESET_PASSWORD.WRONG_CURRENT_PASSWORD');
-  //      }
-  //    } else if (resetPassword.newPasswordToken) {
-  //      var forgottenPasswordModel = await this.authService.getForgottenPasswordModel(
-  //        resetPassword.newPasswordToken,
-  //      );
-  //      isNewPasswordChanged = await this.userService.setPassword(
-  //        forgottenPasswordModel.email,
-  //        resetPassword.newPassword,
-  //      );
-  //      if (isNewPasswordChanged) await forgottenPasswordModel.remove();
-  //    } else {
-  //      return new ResponseError('RESET_PASSWORD.CHANGE_PASSWORD_ERROR');
-  //    }
-  //    return new ResponseSuccess(
-  //      'RESET_PASSWORD.PASSWORD_CHANGED',
-  //      isNewPasswordChanged,
-  //    );
-  //  } catch (error) {
-  //    return new ResponseError('RESET_PASSWORD.CHANGE_PASSWORD_ERROR', error);
-  //  }
-  //}
+  @Post('forgot-password')
+  public async sendEmailForgotPassword(@Body() { email }): Promise<any> {
+    try {
+      const isEmailSent = await this.authService.sendEmailForgotPassword(email);
+      if (!isEmailSent) {
+        throw new Error("Forgot password hasn't been sent");
+      }
+    } catch (error) {
+      if (error instanceof ResetPasswordEmailRecentlySentError) {
+        throw new BadRequestException(error.message);
+      }
+    }
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  public async setNewPassord(
+    @Body() resetPassword: ResetPasswordDto,
+  ): Promise<any> {
+    try {
+      const validRequest = await this.forgottenPasswordService.findOneByToken(
+        resetPassword.newPasswordToken,
+      );
+      let isNewPasswordChanged = false;
+      // TODO
+      if (
+        !validRequest &&
+        resetPassword.email &&
+        resetPassword.currentPassword
+      ) {
+        const isValidPassword = await this.userService.checkPassword(
+          validRequest.email,
+          resetPassword.currentPassword,
+        );
+        if (isValidPassword) {
+          isNewPasswordChanged = await this.userService.setPassword(
+            validRequest.email,
+            resetPassword.newPassword,
+          );
+        } else {
+          throw new BadRequestException('Current password is incorrect');
+        }
+      } else if (validRequest && resetPassword.newPasswordToken) {
+        const forgottenPasswordModel = await this.forgottenPasswordService.findOneByToken(
+          resetPassword.newPasswordToken,
+        );
+        isNewPasswordChanged = await this.userService.setPassword(
+          forgottenPasswordModel.email,
+          resetPassword.newPassword,
+        );
+        if (isNewPasswordChanged) {
+          this.forgottenPasswordService.removeById(forgottenPasswordModel.id);
+        }
+      } else {
+        return new Error('RESET_PASSWORD.CHANGE_PASSWORD_ERROR');
+      }
+    } catch (error) {
+      // TODO
+      console.log(error);
+      return new Error(`RESET_PASSWORD.CHANGE_PASSWORD_ERROR: ${error}`);
+    }
+  }
 }

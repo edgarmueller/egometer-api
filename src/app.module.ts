@@ -7,6 +7,7 @@ import { SchemasModule } from './schemas/schemas.module';
 import { MetersModule } from './meters/meters.module';
 import { AuthModule } from './shared/auth/auth.module';
 import { UsersModule } from './shared/users/users.module';
+import { MailModule } from './shared/mail/mail.module';
 import config from './config';
 
 @Module({
@@ -15,7 +16,7 @@ import config from './config';
     ConfigModule.forRoot({
       load: [config],
       validationSchema: Joi.object({
-        server: Joi.object({
+        frontend: Joi.object({
           host: Joi.string(),
           port: Joi.string(),
         }),
@@ -49,6 +50,7 @@ import config from './config';
     SchemasModule,
     MetersModule,
     EntriesModule,
+    MailModule,
   ],
 })
 export class AppModule {}

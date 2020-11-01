@@ -7,11 +7,15 @@ import { User } from '../users/user';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserService } from '../users/user.service';
+import { MailService } from '../mail/mail.service';
+import { EmailVerificationService } from './email-verification/email-verification.service';
+import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: AuthService;
   let userService: UserService;
+  let emailVerificationService: EmailVerificationService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,6 +24,9 @@ describe('AuthController', () => {
       providers: [
         AuthService,
         UserService,
+        MailService,
+        EmailVerificationService,
+        ForgottenPasswordService,
         {
           provide: getModelToken('User'),
           useValue: {},
@@ -30,6 +37,10 @@ describe('AuthController', () => {
         },
         {
           provide: getModelToken('ConsentRegistry'),
+          useValue: {},
+        },
+        {
+          provide: getModelToken('ForgottenPassword'),
           useValue: {},
         },
         ConfigService,
@@ -45,6 +56,9 @@ describe('AuthController', () => {
     controller = module.get<AuthController>(AuthController);
     authService = module.get<AuthService>(AuthService);
     userService = module.get<UserService>(UserService);
+    emailVerificationService = module.get<EmailVerificationService>(
+      EmailVerificationService,
+    );
   });
 
   it('should be defined', () => {
@@ -55,14 +69,11 @@ describe('AuthController', () => {
     const createUserSpy = jest.spyOn(userService, 'create').mockResolvedValue({
       email: 'foo@example.com',
     } as User);
-    const createEmailTokenSpy = jest
-      .spyOn(authService, 'createEmailToken')
-      .mockImplementation();
     const saveUserConsentSpy = jest
       .spyOn(authService, 'saveUserConsent')
       .mockImplementation();
     const sendEmailVerificationSpy = jest
-      .spyOn(authService, 'sendEmailVerification')
+      .spyOn(emailVerificationService, 'sendEmailVerification')
       .mockResolvedValue(true);
 
     await controller.signUp({
@@ -71,7 +82,6 @@ describe('AuthController', () => {
     });
 
     expect(createUserSpy).toHaveBeenCalled();
-    expect(createEmailTokenSpy).toHaveBeenCalled();
     expect(saveUserConsentSpy).toHaveBeenCalled();
     expect(sendEmailVerificationSpy).toHaveBeenCalled();
   });
