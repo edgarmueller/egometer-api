@@ -47,7 +47,7 @@ export class EmailVerificationService {
 
   async sendEmailVerification(email: string): Promise<boolean> {
     await this.createEmailToken(email);
-    const model = await this.emailVerificationModel.findOne({ email: email });
+    const model = await this.emailVerificationModel.findOne({ email });
 
     if (model && model.emailToken) {
       const host = this.configService.get('frontend.host');

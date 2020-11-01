@@ -9,6 +9,7 @@ import {
   Get,
   BadRequestException,
   Param,
+  ConflictException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -64,15 +65,18 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @Post('signup')
   @UseGuards(ContentType('application/json'))
-  async signUp(@Body() user: CreateUserDto) {
-    console.log(this.configService.get<boolean>('features.signUp'));
+  async signUp(@Body() createUserDto: CreateUserDto) {
     if (!this.configService.get<boolean>('features.signUp')) {
       throw new BadRequestException(
         'Sorry, sign-up is currently de-activated.',
       );
     }
     try {
-      const newUser = await this.userService.create(user);
+      const user = await this.userService.findOneByEmail(createUserDto.email);
+      if (user) {
+        throw new ConflictException('User already exists.');
+      }
+      const newUser = await this.userService.create(createUserDto);
       const sent = await this.emailVerificationService.sendEmailVerification(
         newUser.email,
       );
@@ -86,6 +90,7 @@ export class AuthController {
       if (error instanceof UserAlreadyRegisteredError) {
         throw new BadRequestException(error.message);
       }
+      throw error;
     }
   }
 
@@ -117,6 +122,7 @@ export class AuthController {
 
   @Get('resend-verification/:email')
   public async sendEmailVerification(@Param() params): Promise<any> {
+    console.log('resend verification', params);
     try {
       const isEmailSent = await this.emailVerificationService.sendEmailVerification(
         params.email,
@@ -125,7 +131,9 @@ export class AuthController {
         throw new LoginEmailRecentlySentError('Mail already has been sent.');
       }
     } catch (error) {
-      return new Error('LOGIN.ERROR.SEND_EMAIL');
+      // TODO: logger
+      console.log(error);
+      throw new Error('LOGIN.ERROR.SEND_EMAIL');
     }
   }
 
