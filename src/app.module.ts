@@ -16,6 +16,9 @@ import config from './config';
     ConfigModule.forRoot({
       load: [config],
       validationSchema: Joi.object({
+        features: Joi.object({
+          signUp: Joi.bool().default(false),
+        }),
         frontend: Joi.object({
           host: Joi.string(),
           port: Joi.string(),

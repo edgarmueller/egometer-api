@@ -1,4 +1,7 @@
 export default () => ({
+  features: {
+    signUp: process.env.FEATURE_SIGNUP,
+  },
   frontend: {
     host: process.env.FRONTEND_HOST,
     port: process.env.FRONTEND_PORT,

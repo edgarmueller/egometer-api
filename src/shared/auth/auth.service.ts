@@ -99,8 +99,9 @@ export class AuthService {
 
   async sendEmailForgotPassword(email: string): Promise<boolean> {
     const user = await this.userService.findOneByEmail(email);
+
     if (!user) {
-      throw new UserNotFoundError('LOGIN.USER_NOT_FOUND');
+      throw new UserNotFoundError('User not found');
     }
 
     const tokenModel = await this.createForgottenPasswordToken(email);

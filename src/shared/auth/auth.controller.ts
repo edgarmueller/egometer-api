@@ -24,6 +24,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
 import { UserAlreadyRegisteredError } from '../users/errors/user-already-registered.error';
 import { LoginEmailRecentlySentError } from './email-verification/errors/login-email-recently-sent.error';
+import { UserNotFoundError } from '../users/errors/user-not-found.error';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +34,7 @@ export class AuthController {
     private readonly userService: UserService,
     private readonly emailVerificationService: EmailVerificationService,
     private readonly forgottenPasswordService: ForgottenPasswordService,
+    private readonly configService: ConfigService,
   ) {}
 
   @ApiOperation({ description: 'Login with a user' })
@@ -62,6 +65,12 @@ export class AuthController {
   @Post('signup')
   @UseGuards(ContentType('application/json'))
   async signUp(@Body() user: CreateUserDto) {
+    console.log(this.configService.get<boolean>('features.signUp'));
+    if (!this.configService.get<boolean>('features.signUp')) {
+      throw new BadRequestException(
+        'Sorry, sign-up is currently de-activated.',
+      );
+    }
     try {
       const newUser = await this.userService.create(user);
       const sent = await this.emailVerificationService.sendEmailVerification(
@@ -128,6 +137,9 @@ export class AuthController {
         throw new Error("Forgot password hasn't been sent");
       }
     } catch (error) {
+      if (error instanceof UserNotFoundError) {
+        throw new BadRequestException(error.message);
+      }
       if (error instanceof ResetPasswordEmailRecentlySentError) {
         throw new BadRequestException(error.message);
       }
