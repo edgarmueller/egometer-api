@@ -1,4 +1,3 @@
-import { DocumentType } from '@typegoose/typegoose';
 import { Entry } from '../entry';
 
 export class GetEntryDto {
@@ -10,10 +9,9 @@ export class GetEntryDto {
 
   value: any;
 
-  static fromDocument(doc: DocumentType<Entry>): GetEntryDto {
-    const entry = doc.toObject();
+  static fromEntity(entry: Entry): GetEntryDto {
     return {
-      id: doc._id,
+      id: entry.id,
       date: entry.date,
       meterId: entry.meterId,
       value: entry.value,

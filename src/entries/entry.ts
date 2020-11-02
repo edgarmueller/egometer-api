@@ -1,12 +1,14 @@
-import { prop } from "@typegoose/typegoose";
+import { prop } from '@typegoose/typegoose';
 
 export class Entry {
-    @prop()
-    date: any;
+  id?: string;
 
-    @prop()
-    meterId: string;
+  @prop()
+  date: any;
 
-    @prop()
-    value: any;
+  @prop()
+  meterId: string;
+
+  @prop()
+  value: any;
 }

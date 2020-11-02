@@ -20,7 +20,7 @@ export class GetMeterDto {
       schemaId: meter.schemaId,
       widget: meter.widget,
       userId: meter.userId,
-      weeklyGoal: meter.week,
+      weeklyGoal: meter.weeklyGoal,
       dailyGoal: meter.dailyGoal,
       color: meter.color,
       icon: meter.icon,

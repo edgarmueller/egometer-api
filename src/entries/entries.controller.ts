@@ -7,6 +7,7 @@ import {
   Query,
   Put,
   Param,
+  Delete,
 } from '@nestjs/common';
 import { EntriesService } from './entries.service';
 import { Entry } from './entry';
@@ -44,7 +45,7 @@ export class EntriesController {
     @Query('week') week: number,
   ): Promise<GetEntryDto[] | null> {
     const entries = await this.entriesService.findAll({ year, week });
-    return entries.map(GetEntryDto.fromDocument);
+    return entries.map(GetEntryDto.fromEntity);
   }
 
   @Put(':date/:meterId')
@@ -65,10 +66,16 @@ export class EntriesController {
     if (errors.length > 0) {
       throw new BadRequestException(errors);
     }
-    return await this.entriesService.create({
+    const entry = await this.entriesService.upsert({
       date,
       meterId,
       value: createEntryDto.value,
     });
+    return GetEntryDto.fromEntity(entry);
+  }
+
+  @Delete(':entryId')
+  async deleteById(@Param('entryId') entryId) {
+    return this.entriesService.deleteById(entryId);
   }
 }

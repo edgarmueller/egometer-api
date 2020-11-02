@@ -43,11 +43,15 @@ describe('AuthController', () => {
           provide: getModelToken('ForgottenPassword'),
           useValue: {},
         },
-        ConfigService,
         {
-          provide: 'CONFIG_OPTIONS',
+          provide: ConfigService,
           useValue: {
-            folder: 'config',
+            get(key: string) {
+              switch (key) {
+                case 'features.signUp':
+                  return true;
+              }
+            },
           },
         },
       ],
@@ -66,6 +70,7 @@ describe('AuthController', () => {
   });
 
   it('should sign up a user', async () => {
+    jest.spyOn(userService, 'findOneByEmail').mockResolvedValue(undefined);
     const createUserSpy = jest.spyOn(userService, 'create').mockResolvedValue({
       email: 'foo@example.com',
     } as User);

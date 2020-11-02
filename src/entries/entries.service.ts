@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from 'nestjs-typegoose';
-import { ReturnModelType } from '@typegoose/typegoose';
+import { ReturnModelType, DocumentType } from '@typegoose/typegoose';
+import toNumber from 'lodash/toNumber';
 import { Entry } from './entry';
 import { MetersService } from '../meters/meters.service';
 
@@ -8,6 +9,13 @@ export interface FilterQuery {
   year?: number;
   week?: number;
 }
+
+const toEntry = (entryDoc: DocumentType<Entry>): Entry => {
+  return {
+    ...entryDoc.toObject(),
+    id: entryDoc._id,
+  };
+};
 
 @Injectable()
 export class EntriesService {
@@ -17,7 +25,7 @@ export class EntriesService {
     private readonly metersService: MetersService,
   ) {}
 
-  async create(createEntryDto: Entry): Promise<Entry> {
+  async upsert(createEntryDto: Entry): Promise<Entry> {
     const { meterId } = createEntryDto;
     // 1. check if meter exist
     const meter = await this.metersService.findById(meterId);
@@ -25,18 +33,24 @@ export class EntriesService {
       // TODO
       throw new Error('meter not found');
     }
-    const createdEntry = new this.entryModel(createEntryDto);
-    return await createdEntry.save();
+    const entry = await this.entryModel
+      .findOneAndUpdate(
+        { date: createEntryDto.date, meterId: createEntryDto.meterId },
+        createEntryDto,
+        { new: true, upsert: true },
+      )
+      .exec();
+    return toEntry(entry);
   }
 
-  // TODO
   async findAll({ year, week }: FilterQuery): Promise<Entry[] | null> {
     let query = {};
     if (year) {
+      const y = toNumber(year || new Date().getFullYear());
       query = {
         date: {
-          $gte: new Date(year || new Date().getFullYear(), 0, 1).toISOString(),
-          $lte: new Date().toISOString(),
+          $gte: new Date(y, 0, 1).toISOString(),
+          $lte: new Date(y + 1, 0, 1).toISOString(),
         },
       };
     }
@@ -44,7 +58,6 @@ export class EntriesService {
       year = year || new Date().getFullYear();
       const d = new Date(year, 0, 1);
       const w = d.getTime() + 604800000 * (week - 1);
-      console.log(w);
       query = {
         date: {
           $gte: new Date(w).toISOString(),
@@ -52,6 +65,13 @@ export class EntriesService {
         },
       };
     }
-    return await this.entryModel.find(query).exec();
+    const entryDocs = await this.entryModel.find(query).exec();
+    return entryDocs.map(toEntry);
+  }
+
+  async deleteById(entryId: string): Promise<Entry> {
+    const entry = await this.entryModel.findOne({ _id: entryId }).exec();
+    await this.entryModel.deleteOne({ _id: entryId }).exec();
+    return toEntry(entry);
   }
 }
