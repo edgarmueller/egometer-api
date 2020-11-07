@@ -157,49 +157,27 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   public async setNewPassord(
-    @Body() resetPassword: ResetPasswordDto,
+    @Body() resetPasswordDto: ResetPasswordDto,
   ): Promise<any> {
-    try {
-      const validRequest = await this.forgottenPasswordService.findOneByToken(
-        resetPassword.newPasswordToken,
-      );
-      let isNewPasswordChanged = false;
-      // TODO
-      if (
-        !validRequest &&
-        resetPassword.email &&
-        resetPassword.currentPassword
-      ) {
-        const isValidPassword = await this.userService.checkPassword(
-          validRequest.email,
-          resetPassword.currentPassword,
-        );
-        if (isValidPassword) {
-          isNewPasswordChanged = await this.userService.setPassword(
-            validRequest.email,
-            resetPassword.newPassword,
-          );
-        } else {
-          throw new BadRequestException('Current password is incorrect');
-        }
-      } else if (validRequest && resetPassword.newPasswordToken) {
-        const forgottenPasswordModel = await this.forgottenPasswordService.findOneByToken(
-          resetPassword.newPasswordToken,
-        );
-        isNewPasswordChanged = await this.userService.setPassword(
-          forgottenPasswordModel.email,
-          resetPassword.newPassword,
-        );
-        if (isNewPasswordChanged) {
-          this.forgottenPasswordService.removeById(forgottenPasswordModel.id);
-        }
+    const { email, currentPassword, newPassword, newPasswordToken } = resetPasswordDto;
+    const validRequest = newPasswordToken && await this.forgottenPasswordService.findOneByToken(newPasswordToken);
+    let isNewPasswordChanged = false;
+    if (!validRequest && email && currentPassword) {
+      const isValidPassword = await this.userService.checkPassword(email, currentPassword);
+      if (isValidPassword) {
+        isNewPasswordChanged = await this.userService.setPassword(email, newPassword);
       } else {
-        return new Error('RESET_PASSWORD.CHANGE_PASSWORD_ERROR');
+        console.log('invalid password')
+        throw new BadRequestException('Current password is incorrect');
       }
-    } catch (error) {
-      // TODO
-      console.log(error);
-      return new Error(`RESET_PASSWORD.CHANGE_PASSWORD_ERROR: ${error}`);
+    } else if (validRequest && newPasswordToken) {
+      const forgottenPasswordModel = await this.forgottenPasswordService.findOneByToken(newPasswordToken,);
+      isNewPasswordChanged = await this.userService.setPassword(forgottenPasswordModel.email, newPassword,);
+      if (isNewPasswordChanged) {
+        this.forgottenPasswordService.removeById(forgottenPasswordModel.id);
+      }
+    } else {
+      return new Error('RESET_PASSWORD.CHANGE_PASSWORD_ERROR');
     }
   }
 }
