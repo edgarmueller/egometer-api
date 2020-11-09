@@ -167,7 +167,6 @@ export class AuthController {
       if (isValidPassword) {
         isNewPasswordChanged = await this.userService.setPassword(email, newPassword);
       } else {
-        console.log('invalid password')
         throw new BadRequestException('Current password is incorrect');
       }
     } else if (validRequest && newPasswordToken) {

@@ -7,7 +7,7 @@ export class ResetPasswordDto {
 
   @ApiProperty()
   @IsDefined()
-  currentPassword: string;
+  currentPassword?: string;
 
   @ApiProperty()
   @IsDefined()
