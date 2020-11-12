@@ -17,6 +17,7 @@ import { CreateUserDto } from '../users/dto/create-user.dto';
 import { UserService } from '../users/user.service';
 import { ContentType } from '../../common/guards/content-type.guard';
 import { LocalAuthGuard } from '../../common/guards/local-auth.guard';
+import { diffMins } from '../../common/util/time';
 import { LoginUserDto } from './dto/login-user.dto';
 import { User } from '../users/user';
 import { EmailVerificationService } from './email-verification/email-verification.service';
@@ -24,7 +25,6 @@ import { ResetPasswordEmailRecentlySentError } from './errors/reset-password-ema
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
 import { UserAlreadyRegisteredError } from '../users/errors/user-already-registered.error';
-import { LoginEmailRecentlySentError } from './email-verification/errors/login-email-recently-sent.error';
 import { UserNotFoundError } from '../users/errors/user-not-found.error';
 import { ConfigService } from '@nestjs/config';
 
@@ -110,30 +110,24 @@ export class AuthController {
   @Get('forgot-password/verify/:token')
   public async verifyIsPasswordResetLegit(@Param() params): Promise<boolean> {
     try {
-      await this.forgottenPasswordService.findOneByToken(params.token);
+      const token = await this.forgottenPasswordService.findOneByToken(params.token);
+      if (token && !diffMins(new Date(), token.timestamp, 15)) {
+        return false;
+      }
       return true;
-      //return new ResponseSuccess('LOGIN.EMAIL_VERIFIED', isEmailVerified);
     } catch (error) {
       console.log(error);
       return false;
-      //return new ResponseError('LOGIN.ERROR', error);
     }
   }
 
   @Get('resend-verification/:email')
   public async sendEmailVerification(@Param() params): Promise<any> {
-    console.log('resend verification', params);
-    try {
-      const isEmailSent = await this.emailVerificationService.sendEmailVerification(
-        params.email,
-      );
-      if (!isEmailSent) {
-        throw new LoginEmailRecentlySentError('Mail already has been sent.');
-      }
-    } catch (error) {
-      // TODO: logger
-      console.log(error);
-      throw new Error('LOGIN.ERROR.SEND_EMAIL');
+    const isEmailSent = await this.emailVerificationService.sendEmailVerification(
+      params.email,
+    );
+    if (!isEmailSent) {
+      throw new Error('An error occurred while sending the mail.');
     }
   }
 
@@ -142,7 +136,7 @@ export class AuthController {
     try {
       const isEmailSent = await this.authService.sendEmailForgotPassword(email);
       if (!isEmailSent) {
-        throw new Error("Forgot password hasn't been sent");
+        throw new Error('Forgot password mail could not be sent.');
       }
     } catch (error) {
       if (error instanceof UserNotFoundError) {
@@ -151,6 +145,7 @@ export class AuthController {
       if (error instanceof ResetPasswordEmailRecentlySentError) {
         throw new BadRequestException(error.message);
       }
+      throw error;
     }
   }
 
@@ -159,19 +154,37 @@ export class AuthController {
   public async setNewPassord(
     @Body() resetPasswordDto: ResetPasswordDto,
   ): Promise<any> {
-    const { email, currentPassword, newPassword, newPasswordToken } = resetPasswordDto;
-    const validRequest = newPasswordToken && await this.forgottenPasswordService.findOneByToken(newPasswordToken);
+    const {
+      email,
+      currentPassword,
+      newPassword,
+      newPasswordToken,
+    } = resetPasswordDto;
+    const validRequest =
+      newPasswordToken &&
+      (await this.forgottenPasswordService.findOneByToken(newPasswordToken));
     let isNewPasswordChanged = false;
     if (!validRequest && email && currentPassword) {
-      const isValidPassword = await this.userService.checkPassword(email, currentPassword);
+      const isValidPassword = await this.userService.checkPassword(
+        email,
+        currentPassword,
+      );
       if (isValidPassword) {
-        isNewPasswordChanged = await this.userService.setPassword(email, newPassword);
+        isNewPasswordChanged = await this.userService.setPassword(
+          email,
+          newPassword,
+        );
       } else {
         throw new BadRequestException('Current password is incorrect');
       }
     } else if (validRequest && newPasswordToken) {
-      const forgottenPasswordModel = await this.forgottenPasswordService.findOneByToken(newPasswordToken,);
-      isNewPasswordChanged = await this.userService.setPassword(forgottenPasswordModel.email, newPassword,);
+      const forgottenPasswordModel = await this.forgottenPasswordService.findOneByToken(
+        newPasswordToken,
+      );
+      isNewPasswordChanged = await this.userService.setPassword(
+        forgottenPasswordModel.email,
+        newPassword,
+      );
       if (isNewPasswordChanged) {
         this.forgottenPasswordService.removeById(forgottenPasswordModel.id);
       }

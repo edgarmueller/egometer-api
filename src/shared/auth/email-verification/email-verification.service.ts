@@ -3,6 +3,7 @@ import { ReturnModelType } from '@typegoose/typegoose';
 import { InjectModel } from 'nestjs-typegoose';
 import { EmailVerification } from './email-verification';
 import { generateToken } from '../../../common/util/generate-token';
+import { diffMins } from '../../../common/util/time';
 import { LoginEmailRecentlySentError } from './errors/login-email-recently-sent.error';
 import { ConfigService } from '@nestjs/config';
 import { UserNotRegisteredError } from '../errors/user-not-registered.error';
@@ -25,11 +26,7 @@ export class EmailVerificationService {
 
   private async createEmailToken(email: string): Promise<boolean> {
     const emailVerification = await this.findOneByEmail(email);
-    if (
-      emailVerification &&
-      (new Date().getTime() - emailVerification.timestamp.getTime()) / 60000 <
-        15 // mins
-    ) {
+    if (emailVerification && diffMins(new Date(), emailVerification.timestamp, 15)) {
       throw new LoginEmailRecentlySentError('Login email recently sent');
     } else {
       await this.emailVerificationModel.findOneAndUpdate(

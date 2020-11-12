@@ -12,6 +12,8 @@ import { EmailVerificationService } from './email-verification/email-verificatio
 import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { BadRequestException } from '@nestjs/common';
+import { advanceTo, clear } from 'jest-date-mock';
+import { ResetPasswordEmailRecentlySentError } from './errors/reset-password-email-recently-sent.error';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -68,6 +70,8 @@ describe('AuthController', () => {
     );
     forgottenPasswordService = module.get<ForgottenPasswordService>(ForgottenPasswordService);
   });
+
+  afterEach(() => clear());
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
@@ -159,5 +163,35 @@ describe('AuthController', () => {
     const setPasswordSpy = jest.spyOn(userService, 'setPassword').mockResolvedValue(true);
     await controller.setNewPassord(dto)
     expect(setPasswordSpy).toHaveBeenCalled();
+  });
+
+  it('should throw error if forgotten mail password could not be sent', async () => {
+    jest.spyOn(authService, 'sendEmailForgotPassword').mockResolvedValue(false);
+    await expect(() => controller.sendEmailForgotPassword({ email: 'foo@example.com' })).rejects.toThrowError(/Forgot password mail could not be sent./);
+  });
+
+  it('should return BadRequest if user not found when requesting password reset', async () => {
+    jest.spyOn(userService, 'findOneByEmail').mockResolvedValue(undefined);
+    await expect(() => controller.sendEmailForgotPassword({ email: 'foo@example.com' })).rejects.toThrowError(BadRequestException);
+  });
+
+  it('should return BadRequest if user not found when requesting password reset', async () => {
+    jest.spyOn(authService, 'sendEmailForgotPassword').mockRejectedValue(new ResetPasswordEmailRecentlySentError('test'))
+    await expect(() => controller.sendEmailForgotPassword({ email: 'foo@example.com' })).rejects.toThrowError(BadRequestException);
+  });
+
+  it('should return BadRequest if verification mail has been sent recently', async () => {
+    jest.spyOn(emailVerificationService, 'sendEmailVerification').mockResolvedValue(false);
+    await expect(() => controller.sendEmailVerification({ email: 'foo@example.com' })).rejects.toThrowError(/An error occurred while sending the mail./);
+  });
+
+  it('should NOT verify a password reset token if its older than 15 mins', async () => {
+    advanceTo(new Date(Date.UTC(2020, 10, 12, 10, 0, 0)))
+    jest.spyOn(forgottenPasswordService, 'findOneByToken').mockResolvedValue({
+      timestamp: new Date(Date.UTC(2020, 10, 12, 9, 0, 0)),
+      email: 'foo@example.com',
+      newPasswordToken: 'fake-token',
+    });
+    expect(await controller.verifyIsPasswordResetLegit({ token: 'fake-token' })).toBeFalsy();
   });
 });
