@@ -9,7 +9,7 @@ import { parse } from 'content-type';
 export const ContentType = (contentType: string) =>
   new ContentTypeGuard(contentType);
 
-class ContentTypeGuard implements CanActivate {
+export class ContentTypeGuard implements CanActivate {
   constructor(readonly contentType: string) {}
 
   static fromString(contenType: string): ContentTypeGuard {
