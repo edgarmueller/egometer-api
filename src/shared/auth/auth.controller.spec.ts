@@ -11,7 +11,7 @@ import { MailService } from '../mail/mail.service';
 import { EmailVerificationService } from './email-verification/email-verification.service';
 import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { advanceTo, clear } from 'jest-date-mock';
 import { ResetPasswordEmailRecentlySentError } from './errors/reset-password-email-recently-sent.error';
 
@@ -97,6 +97,15 @@ describe('AuthController', () => {
     expect(createUserSpy).toHaveBeenCalled();
     expect(saveUserConsentSpy).toHaveBeenCalled();
     expect(sendEmailVerificationSpy).toHaveBeenCalled();
+  });
+
+  it('should NOT sign up a user if it already exists', async () => {
+    jest.spyOn(userService, 'findOneByEmail').mockResolvedValue({ } as User);
+
+    await expect(controller.signUp({
+      email: 'foo@example.com',
+      password: 'secret',
+    })).rejects.toThrow(ConflictException);
   });
 
   it('login a user', async () => {
@@ -192,6 +201,23 @@ describe('AuthController', () => {
       email: 'foo@example.com',
       newPasswordToken: 'fake-token',
     });
-    expect(await controller.verifyIsPasswordResetLegit({ token: 'fake-token' })).toBeFalsy();
+    expect(await controller.verifyPasswordResetToken({ token: 'fake-token' })).toBeFalsy();
+  });
+
+  it('should verify a password reset token', async () => {
+    advanceTo(new Date(Date.UTC(2020, 10, 12, 10, 0, 0)))
+    jest.spyOn(forgottenPasswordService, 'findOneByToken').mockResolvedValue({
+      timestamp: new Date(Date.UTC(2020, 10, 12, 9, 46, 0)),
+      email: 'foo@example.com',
+      newPasswordToken: 'fake-token',
+    });
+    expect(await controller.verifyPasswordResetToken({ token: 'fake-token' })).toBeTruthy();
+  });
+
+  it('should verify a mail token', async () => {
+    advanceTo(new Date(Date.UTC(2020, 10, 12, 10, 0, 0)))
+    const verifyEmailSpy = jest.spyOn(emailVerificationService, 'verifyEmail').mockResolvedValue(undefined);
+    expect(await controller.verifyAccountByEmail({ token: undefined })).toBeTruthy();
+    expect(verifyEmailSpy).toBeCalled();
   });
 });

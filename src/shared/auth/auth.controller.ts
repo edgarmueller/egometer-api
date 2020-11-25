@@ -108,7 +108,7 @@ export class AuthController {
   }
 
   @Get('forgot-password/verify/:token')
-  public async verifyIsPasswordResetLegit(@Param() params): Promise<boolean> {
+  public async verifyPasswordResetToken(@Param() params): Promise<boolean> {
     try {
       const token = await this.forgottenPasswordService.findOneByToken(params.token);
       if (token && !diffMins(new Date(), token.timestamp, 15)) {
