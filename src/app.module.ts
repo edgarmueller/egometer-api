@@ -23,9 +23,15 @@ import config from './config';
           host: Joi.string(),
           port: Joi.string(),
         }),
-        jwt: Joi.object({
-          secret: Joi.string(),
-          expiresIn: Joi.string(),
+        auth: Joi.object({
+          jwt: Joi.object({
+            secret: Joi.string(),
+            expiresIn: Joi.string(),
+          }),
+          auth0: Joi.object({
+            issuer: Joi.string(),
+            audience: Joi.string()
+          }),
         }),
         mongoDb: Joi.object({
           uri: Joi.string(),

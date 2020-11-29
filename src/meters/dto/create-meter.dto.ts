@@ -1,6 +1,6 @@
 import { number, string } from '@hapi/joi';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDefined, IsString } from 'class-validator';
+import { IsDefined, IsOptional, IsString } from 'class-validator';
 
 export class CreateMeterDto {
   @ApiProperty({
@@ -38,6 +38,7 @@ export class CreateMeterDto {
     description: 'Specifies by whom the meter to be created will be owned.',
     type: string,
   })
+  @IsOptional()
   userId: string;
 
   @ApiPropertyOptional({

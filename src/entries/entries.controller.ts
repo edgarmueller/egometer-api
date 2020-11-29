@@ -8,14 +8,16 @@ import {
   Put,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
+import { ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { EntriesService } from './entries.service';
 import { Entry } from './entry';
 import { CreateEntryDto } from './dto/create-entry.dto';
 import { MetersService } from '../meters/meters.service';
 import { SchemasService } from '../schemas/schemas.service';
 import { GetEntryDto } from './dto/get-entry.dto';
-import { ApiResponse, ApiQuery } from '@nestjs/swagger';
 
 @Controller('entries')
 export class EntriesController {
@@ -40,6 +42,7 @@ export class EntriesController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Unauthenticated',
   })
+  @UseGuards(AuthGuard('jwt'))
   async getEntries(
     @Query('year') year: number,
     @Query('week') week: number,
@@ -49,6 +52,7 @@ export class EntriesController {
   }
 
   @Put(':date/:meterId')
+  @UseGuards(AuthGuard('jwt'))
   async create(
     @Param('date') date,
     @Param('meterId') meterId,
@@ -75,6 +79,7 @@ export class EntriesController {
   }
 
   @Delete(':entryId')
+  @UseGuards(AuthGuard('jwt'))
   async deleteById(@Param('entryId') entryId) {
     return this.entriesService.deleteById(entryId);
   }

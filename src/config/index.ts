@@ -6,9 +6,15 @@ export default () => ({
     host: process.env.FRONTEND_HOST,
     port: process.env.FRONTEND_PORT,
   },
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN,
+  auth: {
+    jwt: {
+      secret: process.env.JWT_SECRET,
+      expiresIn: process.env.JWT_EXPIRES_IN,
+    },
+    auth0: {
+      issuer: process.env.AUTH0_ISSUER_URL,
+      audience: process.env.AUTH0_AUDIENCE
+    },
   },
   mongoDb: {
     uri: process.env.MONGODB_URI,

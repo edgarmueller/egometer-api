@@ -9,10 +9,7 @@ import { GetUserDto } from '../users/dto/get-user.dto';
 import { ConsentRegistry } from './consent-registry/consent-registry';
 import { UserNotFoundError } from '../users/errors/user-not-found.error';
 import { Injectable } from '@nestjs/common';
-import { UserNotRegisteredError } from './errors/user-not-registered.error';
-import { LoginEmailNotVerifiedError } from './errors/login-email-not-verified.error';
 import { MailService } from '../mail/mail.service';
-import { ForgottenPasswordService } from './forgotten-password/forgotten-password.service';
 
 @Injectable()
 export class AuthService {
@@ -21,38 +18,12 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
-    private readonly forgottenPasswordService: ForgottenPasswordService,
     // TODO
     @InjectModel(ConsentRegistry)
     private readonly consentRegistryModel: ReturnModelType<
       typeof ConsentRegistry
     >,
   ) {}
-
-  async validateUser(email: string, pass: string): Promise<GetUserDto> {
-    const user = await this.userService.findOneByEmail(email);
-    if (!user) {
-      return null;
-    }
-    if (!user.auth.email.valid) {
-      throw new LoginEmailNotVerifiedError('Login email not verified');
-    }
-
-    // find if user password match
-    const match = await this.comparePassword(pass, user.password);
-    if (!match) {
-      return null;
-    }
-
-    // tslint:disable-next-line: no-string-literal
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    return User.toDto(user);
-  }
-
-  public async login(user: GetUserDto) {
-    const token = await this.generateJwtToken(user);
-    return { user, token };
-  }
 
   async generateJwtToken(user: GetUserDto) {
     const token = await this.jwtService.signAsync(user, { expiresIn: '1d' });
@@ -90,34 +61,6 @@ export class AuthService {
       return await newConsent.save();
     } catch (error) {
       console.error(error);
-    }
-  }
-
-  async sendEmailForgotPassword(email: string): Promise<boolean> {
-    const user = await this.userService.findOneByEmail(email);
-
-    if (!user) {
-      throw new UserNotFoundError('User not found');
-    }
-
-    const tokenModel = await this.forgottenPasswordService.createForgottenPasswordToken(email);
-
-    if (tokenModel && tokenModel.newPasswordToken) {
-      const host = this.configService.get('frontend.host');
-      const port = this.configService.get('frontend.port');
-      const mailOptions = {
-        from: 'egometer',
-        to: email,
-        subject: 'Frogotten Password',
-        text: 'Forgot Password',
-        html: `Hi! <br><br> If you requested to reset your password<br><br>
-          <a href='${host}:${port}/auth/reset-password/${tokenModel.newPasswordToken}'>Click here</a>
-          or follow this link: ${host}:${port}/auth/recover/password/${tokenModel.newPasswordToken}`,
-      };
-
-      return this.mailService.sendEmail(mailOptions);
-    } else {
-      throw new UserNotRegisteredError('User not registered');
     }
   }
 }

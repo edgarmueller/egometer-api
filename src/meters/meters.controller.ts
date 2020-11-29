@@ -37,25 +37,33 @@ export class MetersController {
   })
   @UseGuards(AuthGuard('jwt'))
   async getMeters(@Request() req): Promise<GetMeterDto[]> {
-    const meters = await this.metersService.findByUserId(req.user.id);
+    const meters = await this.metersService.findByUserId(req.user.sub);
     return meters.map(GetMeterDto.fromDocument);
   }
 
   @Get(':meterId')
+  @UseGuards(AuthGuard('jwt'))
   async getMeter(@Param('meterId') meterId): Promise<Meter | null> {
     return await this.metersService.findById(meterId);
   }
 
   @Post()
+  @UseGuards(AuthGuard('jwt'))
   async createMeter(
+    @Request() req,
     @Body() createMeterDto: CreateMeterDto,
   ): Promise<GetMeterDto> {
-    const meter = await this.metersService.create(createMeterDto);
+    console.log(req.user)
+    const meter = await this.metersService.create({
+      ...createMeterDto,
+      userId: req.user.sub
+    });
     console.log('created meter', meter);
     return GetMeterDto.fromDocument(meter);
   }
 
   @Patch(':meterId')
+  @UseGuards(AuthGuard('jwt'))
   async updateMeter(
     @Param('meterId') meterId,
     @Body() patchMeterDto: PatchMeterDto,
