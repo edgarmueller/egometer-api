@@ -49,4 +49,14 @@ export class MetersService {
     await this.meterModel.findOneAndUpdate(filter, patchMeterDto);
     return await this.meterModel.findOne(filter);
   }
+
+  async delete(
+    meterId: string
+  ): Promise<boolean> {
+    const filter = {
+      _id: new ObjectId(meterId),
+    };
+    const { ok } = await this.meterModel.deleteOne(filter);
+    return ok === 1;
+  }
 }

@@ -8,6 +8,8 @@ import {
   Post,
   Body,
   Patch,
+  Delete,
+  NotFoundException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MetersService } from './meters.service';
@@ -70,5 +72,14 @@ export class MetersController {
   ): Promise<GetMeterDto> {
     const meter = await this.metersService.update(meterId, patchMeterDto);
     return GetMeterDto.fromDocument(meter);
+  }
+
+  @Delete(':meterId')
+  @UseGuards(AuthGuard('jwt'))
+  async deleteMeter(@Param('meterId') meterId): Promise<void> {
+    const deleted = await this.metersService.delete(meterId);
+    if (!deleted) {
+      throw new NotFoundException();
+    }
   }
 }
