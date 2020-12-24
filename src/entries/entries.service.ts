@@ -56,12 +56,15 @@ export class EntriesService {
     }
     if (week) {
       year = year || new Date().getFullYear();
-      const d = new Date(year, 0, 1);
-      const w = d.getTime() + 604800000 * (week - 1);
+      const firstDay = new Date(year, 0, 1).getDay();
+      const firstDayOfYear = new Date("Jan 01, " + year + " 01:00:00");
+      const w = firstDayOfYear.getTime() - (3600000 * 24 * (firstDay - 1)) + 604800000 * (week - 1)
+      const n1 = new Date(w);
+      const n2 = new Date(w + 518400000)
       query = {
         date: {
-          $gte: new Date(w).toISOString(),
-          $lte: new Date(w + 518400000).toISOString(),
+          $gte: n1.toISOString(),
+          $lte: n2.toISOString()
         },
       };
     }
