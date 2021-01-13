@@ -55,12 +55,10 @@ export class MetersController {
     @Request() req,
     @Body() createMeterDto: CreateMeterDto,
   ): Promise<GetMeterDto> {
-    console.log(req.user)
     const meter = await this.metersService.create({
       ...createMeterDto,
       userId: req.user.sub
     });
-    console.log('created meter', meter);
     return GetMeterDto.fromDocument(meter);
   }
 
