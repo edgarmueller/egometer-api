@@ -17,6 +17,18 @@ const toEntry = (entryDoc: DocumentType<Entry>): Entry => {
   };
 };
 
+export function weekToDate(year, week) {
+  const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
+  const dayOfWeek = simple.getDay();
+  const isoWeekStart = simple;
+  if (dayOfWeek <= 4) {
+    isoWeekStart.setDate(simple.getDate() - simple.getDay() + 1);
+  } else {
+    isoWeekStart.setDate(simple.getDate() + 8 - simple.getDay());
+  }
+  return isoWeekStart;
+}
+
 @Injectable()
 export class EntriesService {
   constructor(
@@ -56,18 +68,17 @@ export class EntriesService {
     }
     if (week) {
       year = year || new Date().getFullYear();
-      const firstDay = new Date(year, 0, 1).getDay();
-      const firstDayOfYear = new Date("Jan 01, " + year + " 01:00:00");
-      const w = firstDayOfYear.getTime() - (3600000 * 24 * (firstDay - 1)) + 604800000 * (week - 1)
-      const n1 = new Date(w);
-      const n2 = new Date(w + 518400000)
+      const w = weekToDate(year, week);
+      const start = w.getTime();
+      const end = new Date(start + 518400000);
       query = {
         date: {
-          $gte: n1.toISOString(),
-          $lte: n2.toISOString()
+          $gte: w.toISOString(),
+          $lte: end.toISOString(),
         },
       };
     }
+    console.log(query);
     const entryDocs = await this.entryModel.find(query).exec();
     return entryDocs.map(toEntry);
   }
