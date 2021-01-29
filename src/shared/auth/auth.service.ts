@@ -1,24 +1,15 @@
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import bcrypt from 'bcrypt';
 import { InjectModel } from 'nestjs-typegoose';
 import { ReturnModelType } from '@typegoose/typegoose';
-import { UserService } from '../users/user.service';
-import { User } from '../users/user';
 import { GetUserDto } from '../users/dto/get-user.dto';
 import { ConsentRegistry } from './consent-registry/consent-registry';
-import { UserNotFoundError } from '../users/errors/user-not-found.error';
 import { Injectable } from '@nestjs/common';
-import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userService: UserService,
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
-    private readonly mailService: MailService,
-    // TODO
     @InjectModel(ConsentRegistry)
     private readonly consentRegistryModel: ReturnModelType<
       typeof ConsentRegistry

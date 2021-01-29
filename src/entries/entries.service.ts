@@ -78,7 +78,6 @@ export class EntriesService {
         },
       };
     }
-    console.log(query);
     const entryDocs = await this.entryModel.find(query).exec();
     return entryDocs.map(toEntry);
   }
