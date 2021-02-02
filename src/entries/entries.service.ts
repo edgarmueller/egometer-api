@@ -29,6 +29,9 @@ export function weekToDate(year, week) {
   return isoWeekStart;
 }
 
+const onlyDateAsString = date =>
+  date.toISOString().substr(0, 'YYYY-MM-DD'.length);
+
 @Injectable()
 export class EntriesService {
   constructor(
@@ -61,20 +64,19 @@ export class EntriesService {
       const y = toNumber(year || new Date().getFullYear());
       query = {
         date: {
-          $gte: new Date(y, 0, 1).toISOString(),
-          $lte: new Date(y + 1, 0, 1).toISOString(),
+          $gte: onlyDateAsString(new Date(y, 0, 1)),
+          $lte: onlyDateAsString(new Date(y + 1, 0, 1)),
         },
       };
     }
     if (week) {
       year = year || new Date().getFullYear();
-      const w = weekToDate(year, week);
-      const start = w.getTime();
-      const end = new Date(start + 518400000);
+      const startDate = weekToDate(year, week);
+      const endDate = new Date(startDate.getTime() + 518400000);
       query = {
         date: {
-          $gte: w.toISOString(),
-          $lte: end.toISOString(),
+          $gte: onlyDateAsString(startDate),
+          $lte: onlyDateAsString(endDate),
         },
       };
     }
