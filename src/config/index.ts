@@ -1,7 +1,4 @@
 export default () => ({
-  features: {
-    signUp: process.env.FEATURE_SIGNUP,
-  },
   frontend: {
     host: process.env.FRONTEND_HOST,
     port: process.env.FRONTEND_PORT,
@@ -13,7 +10,7 @@ export default () => ({
     },
     auth0: {
       issuer: process.env.AUTH0_ISSUER_URL,
-      audience: process.env.AUTH0_AUDIENCE
+      audience: process.env.AUTH0_AUDIENCE,
     },
   },
   mongoDb: {
