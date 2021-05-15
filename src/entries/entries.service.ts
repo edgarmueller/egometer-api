@@ -4,10 +4,13 @@ import { ReturnModelType, DocumentType } from '@typegoose/typegoose';
 import toNumber from 'lodash/toNumber';
 import { Entry } from './entry';
 import { MetersService } from '../meters/meters.service';
+import { start } from 'repl';
+import { query } from 'express';
 
 export interface FilterQuery {
   year?: number;
   week?: number;
+  month?: number;
 }
 
 const toEntry = (entryDoc: DocumentType<Entry>): Entry => {
@@ -58,27 +61,16 @@ export class EntriesService {
     return toEntry(entry);
   }
 
-  async findAll({ year, week }: FilterQuery): Promise<Entry[] | null> {
+  async findAll({ year, week, month }: FilterQuery): Promise<Entry[] | null> {
     let query = {};
     if (year) {
-      const y = toNumber(year || new Date().getFullYear());
-      query = {
-        date: {
-          $gte: onlyDateAsString(new Date(y, 0, 1)),
-          $lte: onlyDateAsString(new Date(y + 1, 0, 1)),
-        },
-      };
+      query = this.buildQueryByYear(year);
     }
-    if (week) {
-      year = year || new Date().getFullYear();
-      const startDate = weekToDate(year, week);
-      const endDate = new Date(startDate.getTime() + 518400000);
-      query = {
-        date: {
-          $gte: onlyDateAsString(startDate),
-          $lte: onlyDateAsString(endDate),
-        },
-      };
+    year = year || new Date().getFullYear();
+    if (month) {
+      query = this.buildQueryByMonth(year, month);
+    } else if (week) {
+      query = this.buildQueryByWeek(year, week);
     }
     const entryDocs = await this.entryModel.find(query).exec();
     return entryDocs.map(toEntry);
@@ -88,5 +80,38 @@ export class EntriesService {
     const entry = await this.entryModel.findOne({ _id: entryId }).exec();
     await this.entryModel.deleteOne({ _id: entryId }).exec();
     return toEntry(entry);
+  }
+
+  private buildQueryByWeek(year: number, week: number) {
+    const startDate = weekToDate(year, week);
+    const endDate = new Date(startDate.getTime() + 518400000);
+    return {
+      date: {
+        $gte: onlyDateAsString(startDate),
+        $lte: onlyDateAsString(endDate),
+      },
+    };
+  }
+
+  private buildQueryByMonth(year: number, month: number) {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+    const endDate = new Date(Date.UTC(year, month - 1, daysInMonth, 0, 0, 0));
+    return {
+      date: {
+        $gte: onlyDateAsString(startDate),
+        $lte: onlyDateAsString(endDate),
+      },
+    };
+  }
+
+  private buildQueryByYear(year: number) {
+    const y = toNumber(year || new Date().getFullYear());
+    return {
+      date: {
+        $gte: onlyDateAsString(new Date(y, 0, 1)),
+        $lte: onlyDateAsString(new Date(y + 1, 0, 1)),
+      },
+    };
   }
 }

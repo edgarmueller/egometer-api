@@ -45,9 +45,10 @@ export class EntriesController {
   @UseGuards(AuthGuard('jwt'))
   async getEntries(
     @Query('year') year: number,
+    @Query('month') month: number,
     @Query('week') week: number,
   ): Promise<GetEntryDto[] | null> {
-    const entries = await this.entriesService.findAll({ year, week });
+    const entries = await this.entriesService.findAll({ year, month, week });
     return entries.map(GetEntryDto.fromEntity);
   }
 
