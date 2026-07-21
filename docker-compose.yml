@@ -1,0 +1,34 @@
+version: "3"
+
+x-logging: &default-logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+
+services:
+  egometer_db:
+    image: postgres:16
+    ports:
+      - "5460:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: egometer
+    volumes:
+      - egometer-db-data:/var/lib/postgresql/data
+    <<: *default-logging
+    restart: always
+
+  egometer_db_testing:
+    image: postgres:16
+    ports:
+      - "5461:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: egometer_testing
+    <<: *default-logging
+
+volumes:
+  egometer-db-data:
