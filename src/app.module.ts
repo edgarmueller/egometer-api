@@ -11,6 +11,7 @@ import { DatabaseModule } from './infra/database/database.module'
 import { AuthModule } from './auth/auth.module'
 import { UsersModule } from './users/users.module'
 import { MetersModule } from './meters/meters.module'
+import { EntriesModule } from './entries/entries.module'
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MetersModule } from './meters/meters.module'
     UsersModule,
     AuthModule,
     MetersModule,
+    EntriesModule,
   ],
 })
 export class AppModule {}
