@@ -10,6 +10,7 @@ import {
 import { DatabaseModule } from './infra/database/database.module'
 import { AuthModule } from './auth/auth.module'
 import { UsersModule } from './users/users.module'
+import { MetersModule } from './meters/meters.module'
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module'
     DatabaseModule,
     UsersModule,
     AuthModule,
+    MetersModule,
   ],
 })
 export class AppModule {}
