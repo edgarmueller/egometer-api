@@ -1,5 +1,5 @@
-# Node 14 matches the toolchain this project was built with (NestJS 7, bcrypt 5)
-FROM node:14-bullseye AS base
+# Node 22 is the current LTS (security support until 2027-04)
+FROM node:22-bookworm AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -15,11 +15,12 @@ FROM base AS build
 COPY . .
 RUN npm run build && npm prune --production
 
-FROM node:14-bullseye-slim AS prod
+FROM node:22-bookworm-slim AS prod
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
+USER node
 EXPOSE 3000
 CMD ["node", "dist/main"]
