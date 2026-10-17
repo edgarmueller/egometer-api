@@ -5,6 +5,22 @@ Built with [NestJS](https://nestjs.com) and MongoDB.
 
 ## Getting started
 
+### With Docker
+
+The quickest way to run the API locally is Docker Compose, which starts MongoDB and the API in watch mode:
+
+```bash
+docker compose up
+```
+
+The API restarts whenever a file in `src/` changes. MongoDB data is kept in the `mongo-data` volume
+(`docker compose down -v` deletes it) and MongoDB is also exposed on `localhost:27017`, e.g. for `mongosh`.
+A development-only `JWT_SECRET` is preset; to override it or other settings, put them in a `.env` file or your shell environment.
+
+To build a production image instead: `docker build --target prod -t egometer-api .`
+
+### Without Docker
+
 Requirements: Node.js (12 or 14 recommended) and a MongoDB instance.
 
 ```bash
