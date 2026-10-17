@@ -1,75 +1,62 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# egometer-api
 
-[travis-image]: https://api.travis-ci.org/nestjs/nest.svg?branch=master
-[travis-url]: https://travis-ci.org/nestjs/nest
-[linux-image]: https://img.shields.io/travis/nestjs/nest/master.svg?label=linux
-[linux-url]: https://travis-ci.org/nestjs/nest
-  
-  <p align="center">A progressive <a href="http://nodejs.org" target="blank">Node.js</a> framework for building efficient and scalable server-side applications, heavily inspired by <a href="https://angular.io" target="blank">Angular</a>.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore"><img src="https://img.shields.io/npm/dm/@nestjs/core.svg" alt="NPM Downloads" /></a>
-<a href="https://travis-ci.org/nestjs/nest"><img src="https://api.travis-ci.org/nestjs/nest.svg?branch=master" alt="Travis" /></a>
-<a href="https://travis-ci.org/nestjs/nest"><img src="https://img.shields.io/travis/nestjs/nest/master.svg?label=linux" alt="Linux" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#5" alt="Coverage" /></a>
-<a href="https://gitter.im/nestjs/nestjs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=body_badge"><img src="https://badges.gitter.im/nestjs/nestjs.svg" alt="Gitter" /></a>
-<a href="https://opencollective.com/nest#backer"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec"><img src="https://img.shields.io/badge/Donate-PayPal-dc3d53.svg"/></a>
-  <a href="https://twitter.com/nestframework"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Backend of [egometer](https://github.com/edgarmueller/egometer-frontend), a customizable habit tracker.
+Built with [NestJS](https://nestjs.com) and MongoDB.
 
-## Description
+## Getting started
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Installation
+Requirements: Node.js (12 or 14 recommended) and a MongoDB instance.
 
 ```bash
-$ npm install
+npm install
+cp .env.example .env   # then fill in JWT_SECRET
+npm run start:dev
 ```
 
-## Running the app
+The API is served at `http://localhost:3000/api/v1`, Swagger docs at `http://localhost:3000/api/v1/docs`.
+
+### Configuration
+
+All configuration is done via environment variables (or a `.env` file), see [`.env.example`](.env.example).
+
+| Variable         | Required | Description                                                  |
+| ---------------- | -------- | ------------------------------------------------------------ |
+| `MONGODB_URI`    | yes      | MongoDB connection string                                    |
+| `JWT_SECRET`     | yes      | Secret used to sign login tokens, at least 32 characters     |
+| `JWT_EXPIRES_IN` | no       | How long a login stays valid, defaults to `7d`               |
+| `ALLOW_SIGNUP`   | no       | Set to `false` to disable creating new accounts              |
+| `PORT`           | no       | Port to listen on, defaults to `3000`                        |
+
+## Authentication
+
+Users sign up and log in with email and password. Passwords are hashed with bcrypt;
+on success the API returns a JWT that has to be sent as `Authorization: Bearer <token>`.
+
+| Endpoint                    | Description                                      |
+| --------------------------- | ------------------------------------------------ |
+| `POST /api/v1/auth/signup`  | `{ email, password }` → `{ token, user }`        |
+| `POST /api/v1/auth/login`   | `{ email, password }` → `{ token, user }`        |
+| `GET /api/v1/auth/me`       | Returns the logged in user                       |
+
+If the API is reachable by others, set `ALLOW_SIGNUP=false` once you've created your account.
+
+### Migrating from Auth0
+
+Meters created while egometer used Auth0 are owned by the Auth0 user id and won't show up
+for a new account. After signing up, assign them to your new user:
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+mongosh "$MONGODB_URI" --eval '
+  const me = db.users.findOne({ email: "you@example.com" });
+  db.meters.updateMany({}, { $set: { userId: me._id.toString() } });
+'
 ```
 
-## Test
+This assigns *all* meters to that user, which is what you want for a single-user setup.
+
+## Tests
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm test          # unit tests
+npm run test:cov  # with coverage
 ```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-  Nest is [MIT licensed](LICENSE).
