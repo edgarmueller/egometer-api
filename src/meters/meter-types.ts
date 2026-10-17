@@ -15,25 +15,25 @@ export type MeterType = (typeof METER_TYPES)[number];
 export const MOOD_VALUES = ['awful', 'bad', 'okay', 'good', 'great'];
 export const QUANTITY_VALUES = ['none', 'a_bit', 'a_lot'];
 export const DEFAULT_ACTIVITIES = [
-  'work',
-  'chill',
+  // people
+  'family',
   'friends',
-  'love',
+  'partner',
+  // active
   'sports',
-  'party',
-  'movies',
+  'outdoors',
+  'travel',
+  // leisure
   'reading',
   'gaming',
-  'shopping',
-  'traveling',
-  'food',
-  'nature',
-  'cleaning',
-  'pet_project',
-  'family',
-  'sick',
+  'movies_tv',
+  'music',
+  // duties
+  'work',
+  'chores',
+  // growth
   'learning',
-  'health',
+  'side_project',
 ];
 export const MAX_TEXT_LENGTH = 10_000;
 
