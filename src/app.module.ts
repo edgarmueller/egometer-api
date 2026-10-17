@@ -15,34 +15,20 @@ import config from './config';
   imports: [
     ConfigModule.forRoot({
       load: [config],
+      // validates the environment variables the config is built from
       validationSchema: Joi.object({
-        features: Joi.object({
-          signUp: Joi.bool().default(false),
-        }),
-        frontend: Joi.object({
-          host: Joi.string(),
-          port: Joi.string(),
-        }),
-        auth: Joi.object({
-          jwt: Joi.object({
-            secret: Joi.string(),
-            expiresIn: Joi.string(),
-          }),
-          auth0: Joi.object({
-            issuer: Joi.string(),
-            audience: Joi.string()
-          }),
-        }),
-        mongoDb: Joi.object({
-          uri: Joi.string(),
-        }),
-        mail: {
-          host: Joi.string(),
-          port: Joi.number(),
-          secure: Joi.boolean(),
-          user: Joi.string(),
-          password: Joi.string(),
-        },
+        PORT: Joi.number().default(3000),
+        MONGODB_URI: Joi.string().required(),
+        JWT_SECRET: Joi.string().min(32).required(),
+        JWT_EXPIRES_IN: Joi.string(),
+        ALLOW_SIGNUP: Joi.boolean(),
+        FRONTEND_HOST: Joi.string(),
+        FRONTEND_PORT: Joi.string(),
+        MAIL_HOST: Joi.string(),
+        MAIL_PORT: Joi.number(),
+        MAIL_SECURE: Joi.boolean(),
+        MAIL_USER: Joi.string(),
+        MAIL_PASSWORD: Joi.string(),
       }),
     }),
     TypegooseModule.forRootAsync({

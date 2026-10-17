@@ -1,4 +1,8 @@
 export default () => ({
+  features: {
+    // Joi accepts e.g. FALSE as a boolean, so compare case-insensitively
+    signUp: String(process.env.ALLOW_SIGNUP).toLowerCase() !== 'false',
+  },
   frontend: {
     host: process.env.FRONTEND_HOST,
     port: process.env.FRONTEND_PORT,
@@ -6,11 +10,7 @@ export default () => ({
   auth: {
     jwt: {
       secret: process.env.JWT_SECRET,
-      expiresIn: process.env.JWT_EXPIRES_IN,
-    },
-    auth0: {
-      issuer: process.env.AUTH0_ISSUER_URL,
-      audience: process.env.AUTH0_AUDIENCE,
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     },
   },
   mongoDb: {

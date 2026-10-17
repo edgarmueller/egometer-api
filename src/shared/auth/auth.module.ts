@@ -1,25 +1,29 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
-//import { JwtStrategy } from './strategies/jwt.strategy';
-import { TypegooseModule } from 'nestjs-typegoose';
-import { ConsentRegistry } from './consent-registry/consent-registry';
-import { MailModule } from '../mail/mail.module';
-import { Auth0Strategy } from './strategies/auth0.strategy';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { LocalStrategy } from './strategies/local.strategy';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     UsersModule,
     ConfigModule,
-    MailModule,
-    TypegooseModule.forFeature([ConsentRegistry]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('auth.jwt.secret'),
+        signOptions: { expiresIn: configService.get('auth.jwt.expiresIn') },
+      }),
+    }),
   ],
-  providers: [
-    Auth0Strategy,
-  ],
-  controllers: [],
-  exports: [PassportModule]
+  providers: [AuthService, LocalStrategy, JwtStrategy],
+  controllers: [AuthController],
+  exports: [PassportModule],
 })
 export class AuthModule {}

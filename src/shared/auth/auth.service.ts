@@ -1,57 +1,42 @@
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
-import { InjectModel } from 'nestjs-typegoose';
-import { ReturnModelType } from '@typegoose/typegoose';
+import { UserService } from '../users/user.service';
+import { User } from '../users/user';
 import { GetUserDto } from '../users/dto/get-user.dto';
-import { ConsentRegistry } from './consent-registry/consent-registry';
-import { Injectable } from '@nestjs/common';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { JwtPayload } from './jwt-payload';
+
+export interface AuthResult {
+  token: string;
+  user: GetUserDto;
+}
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
-    @InjectModel(ConsentRegistry)
-    private readonly consentRegistryModel: ReturnModelType<
-      typeof ConsentRegistry
-    >,
+    private readonly userService: UserService,
   ) {}
 
-  async generateJwtToken(user: GetUserDto) {
-    const token = await this.jwtService.signAsync(user, { expiresIn: '1d' });
-    return token;
-  }
-
-  async comparePassword(enteredPassword, dbPassword) {
-    const match = await bcrypt.compare(enteredPassword, dbPassword);
-    return match;
-  }
-
-  async saveUserConsent(email: string): Promise<ConsentRegistry> {
-    try {
-      //const http = new HttpService();
-      const newConsent = new this.consentRegistryModel();
-      newConsent.email = email;
-      newConsent.date = new Date();
-      newConsent.registration = [
-        'name',
-        'surname',
-        'email',
-        'birthday date',
-        'password',
-      ];
-      newConsent.checkboxText = 'I accept privacy policy';
-      //const privacyPolicyResponse: any = await http
-      //  .get('https://www.XXXXXX.com/api/privacy-policy')
-      //  .toPromise();
-      // newConsent.privacyPolicy = privacyPolicyResponse.data.content;
-      //const cookiePolicyResponse: any = await http
-      //  .get('https://www.XXXXXX.com/api/privacy-policy')
-      //  .toPromise();
-      // newConsent.cookiePolicy = cookiePolicyResponse.data.content;
-      newConsent.acceptedPolicy = 'Y';
-      return await newConsent.save();
-    } catch (error) {
-      console.error(error);
+  async validateUser(email: string, password: string): Promise<User | null> {
+    const user = await this.userService.findOneByEmail(email);
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return null;
     }
+    return user;
+  }
+
+  async login(user: User): Promise<AuthResult> {
+    const payload: JwtPayload = { sub: String(user.id), email: user.email };
+    return {
+      token: await this.jwtService.signAsync(payload),
+      user: User.toDto(user),
+    };
+  }
+
+  async signUp(createUserDto: CreateUserDto): Promise<AuthResult> {
+    const user = await this.userService.create(createUserDto);
+    return this.login(user);
   }
 }

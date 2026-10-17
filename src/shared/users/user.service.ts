@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DocumentType, ReturnModelType } from '@typegoose/typegoose';
 import { InjectModel } from 'nestjs-typegoose';
+import { isValidObjectId } from 'mongoose';
 import bcrypt from 'bcrypt';
-import has from 'lodash/has';
 import { User } from './user';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserAlreadyRegisteredError } from './errors/user-already-registered.error';
@@ -15,6 +15,8 @@ const toUser = (userDoc: DocumentType<User>) => ({
   id: userDoc._id,
   ...userDoc.toObject(),
 });
+
+const normalizeEmail = (email: string) => (email || '').trim().toLowerCase();
 
 const isValidEmail = (email: string) => {
   if (email) {
@@ -32,25 +34,21 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { email, password } = createUserDto;
-    if (isValidEmail(email) && password) {
-      const existingUser = await this.findOneByEmail(email);
-      if (!existingUser) {
-        const createdUser = new this.userModel({
-          ...createUserDto,
-          password: await bcrypt.hash(password, SALT_ROUNDS),
-          roles: ['USER'],
-        });
-        await createdUser.save();
-        return toUser(createdUser);
-      } else if (!has(existingUser, 'auth.email.valid')) {
-        return existingUser;
-      } else {
-        throw new UserAlreadyRegisteredError('User already registered');
-      }
-    } else {
+    const email = normalizeEmail(createUserDto.email);
+    const { password } = createUserDto;
+    if (!isValidEmail(email) || !password) {
       throw new MissingUserDataError('Insufficient user data');
     }
+    if (await this.findOneByEmail(email)) {
+      throw new UserAlreadyRegisteredError('User already registered');
+    }
+    const createdUser = new this.userModel({
+      email,
+      password: await bcrypt.hash(password, SALT_ROUNDS),
+      roles: ['USER'],
+    });
+    await createdUser.save();
+    return toUser(createdUser);
   }
 
   async findAll(): Promise<User[] | null> {
@@ -58,13 +56,21 @@ export class UserService {
     return userDocs.map(toUser);
   }
 
-  async findOneById(id: string): Promise<User> {
+  async findOneById(id: string): Promise<User | null> {
+    if (!isValidObjectId(id)) {
+      return null;
+    }
     const userDoc = await this.userModel.findById(id).exec();
+    if (!userDoc) {
+      return null;
+    }
     return toUser(userDoc);
   }
 
   async findOneByEmail(email: string): Promise<User | null> {
-    const userDoc = await this.userModel.findOne({ email }).exec();
+    const userDoc = await this.userModel
+      .findOne({ email: normalizeEmail(email) })
+      .exec();
     if (!userDoc) {
       return null;
     }
@@ -80,7 +86,9 @@ export class UserService {
   }
 
   async setPassword(email: string, newPassword: string): Promise<boolean> {
-    const userFromDb = await this.userModel.findOne({ email: email });
+    const userFromDb = await this.userModel.findOne({
+      email: normalizeEmail(email),
+    });
     if (!userFromDb) {
       throw new UserNotFoundError('User not found');
     }
@@ -92,7 +100,7 @@ export class UserService {
   }
 
   async checkPassword(email: string, password: string) {
-    const user = await this.userModel.findOne({ email });
+    const user = await this.userModel.findOne({ email: normalizeEmail(email) });
     if (!user) {
       throw new UserNotFoundError('User not found');
     }
