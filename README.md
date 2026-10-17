@@ -19,6 +19,17 @@ A development-only `JWT_SECRET` is preset; to override it or other settings, put
 
 To build a production image instead: `docker build --target prod -t egometer-api .`
 
+Shortcuts:
+
+| Script               | Description                                                                     |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `npm run infra:up`   | Start MongoDB and the API in the background                                     |
+| `npm run infra:db`   | Start only MongoDB, e.g. to run the API with `npm run start:dev` or a debugger  |
+| `npm run infra:logs` | Follow the logs                                                                 |
+| `npm run infra:down` | Stop everything (data is kept; `docker compose down -v` deletes it)             |
+
+With `infra:db`, the `MONGODB_URI` from `.env.example` (`mongodb://localhost:27017/egometer`) points at that container.
+
 ### Without Docker
 
 Requirements: Node.js (12 or 14 recommended) and a MongoDB instance.
