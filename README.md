@@ -9,7 +9,6 @@ Requirements: Node.js 22 and either Docker (for the bundled MongoDB) or a MongoD
 
 ```bash
 npm install
-cp .env.example .env   # then fill in JWT_SECRET
 npm run infra:up       # start MongoDB in Docker; skip if you use your own MongoDB
 npm run start:dev
 ```
@@ -20,7 +19,7 @@ It restarts whenever a file in `src/` changes; use `npm run start:debug` to atta
 ### Local MongoDB
 
 [`docker-compose.yml`](docker-compose.yml) runs MongoDB 4.4 on `localhost:27017`, which is what the
-`MONGODB_URI` in `.env.example` points at.
+`MONGODB_URI` in `.env.development` points at.
 
 | Script               | Description                                                           |
 | -------------------- | --------------------------------------------------------------------- |
@@ -36,7 +35,10 @@ It needs the same environment variables as below, e.g.
 
 ### Configuration
 
-All configuration is done via environment variables (or a `.env` file), see [`.env.example`](.env.example).
+All configuration is done via environment variables. Outside of production (`NODE_ENV=production`),
+[`.env.development`](.env.development) provides working local defaults, including a development-only
+`JWT_SECRET`. To change a value, put it in a `.env` file (see [`.env.example`](.env.example)) or the
+environment; both take precedence over `.env.development`. In production, `MONGODB_URI` and `JWT_SECRET` must be set.
 
 | Variable         | Required | Description                                                  |
 | ---------------- | -------- | ------------------------------------------------------------ |
