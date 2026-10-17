@@ -5,42 +5,34 @@ Built with [NestJS](https://nestjs.com) and MongoDB.
 
 ## Getting started
 
-### With Docker
-
-The quickest way to run the API locally is Docker Compose, which starts MongoDB and the API in watch mode:
-
-```bash
-docker compose up
-```
-
-The API restarts whenever a file in `src/` changes. MongoDB data is kept in the `mongo-data` volume
-(`docker compose down -v` deletes it) and MongoDB is also exposed on `localhost:27017`, e.g. for `mongosh`.
-A development-only `JWT_SECRET` is preset; to override it or other settings, put them in a `.env` file or your shell environment.
-
-To build a production image instead: `docker build --target prod -t egometer-api .`
-
-Shortcuts:
-
-| Script               | Description                                                                     |
-| -------------------- | ------------------------------------------------------------------------------- |
-| `npm run infra:up`   | Start MongoDB and the API in the background                                     |
-| `npm run infra:db`   | Start only MongoDB, e.g. to run the API with `npm run start:dev` or a debugger  |
-| `npm run infra:logs` | Follow the logs                                                                 |
-| `npm run infra:down` | Stop everything (data is kept; `docker compose down -v` deletes it)             |
-
-With `infra:db`, the `MONGODB_URI` from `.env.example` (`mongodb://localhost:27017/egometer`) points at that container.
-
-### Without Docker
-
-Requirements: Node.js (12 or 14 recommended) and a MongoDB instance.
+Requirements: Node.js 22 and either Docker (for the bundled MongoDB) or a MongoDB instance of your own.
 
 ```bash
 npm install
 cp .env.example .env   # then fill in JWT_SECRET
+npm run infra:up       # start MongoDB in Docker; skip if you use your own MongoDB
 npm run start:dev
 ```
 
 The API is served at `http://localhost:3000/api/v1`, Swagger docs at `http://localhost:3000/api/v1/docs`.
+It restarts whenever a file in `src/` changes; use `npm run start:debug` to attach a debugger.
+
+### Local MongoDB
+
+[`docker-compose.yml`](docker-compose.yml) runs MongoDB 4.4 on `localhost:27017`, which is what the
+`MONGODB_URI` in `.env.example` points at.
+
+| Script               | Description                                                           |
+| -------------------- | --------------------------------------------------------------------- |
+| `npm run infra:up`   | Start MongoDB in the background and wait until it's ready             |
+| `npm run infra:logs` | Follow the MongoDB logs                                               |
+| `npm run infra:down` | Stop MongoDB (data is kept; `docker compose down -v` deletes it)      |
+
+### Production image
+
+`docker build -t egometer-api .` builds an image that runs the compiled API as an unprivileged user.
+It needs the same environment variables as below, e.g.
+`docker run -p 3000:3000 -e MONGODB_URI=... -e JWT_SECRET=... egometer-api`.
 
 ### Configuration
 
