@@ -1,117 +1,80 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from 'nestjs-typegoose';
-import { ReturnModelType, DocumentType } from '@typegoose/typegoose';
-import toNumber from 'lodash/toNumber';
-import { Entry } from './entry';
-import { MetersService } from '../meters/meters.service';
-import { start } from 'repl';
-import { query } from 'express';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { daysBetween } from '../common/calendar-date.js';
+import { MetersService } from '../meters/meters.service.js';
+import { validateEntryValue } from '../meters/meter-types.js';
+import { Entry, EntryDocument } from './entry.schema.js';
+import { FindEntriesQuery } from './dto/entry.dto.js';
 
-export interface FilterQuery {
-  year?: number;
-  week?: number;
-  month?: number;
-}
-
-const toEntry = (entryDoc: DocumentType<Entry>): Entry => {
-  return {
-    ...entryDoc.toObject(),
-    id: entryDoc._id,
-  };
-};
-
-export function weekToDate(year, week) {
-  const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
-  const dayOfWeek = simple.getDay();
-  const isoWeekStart = simple;
-  if (dayOfWeek <= 4) {
-    isoWeekStart.setDate(simple.getDate() - simple.getDay() + 1);
-  } else {
-    isoWeekStart.setDate(simple.getDate() + 8 - simple.getDay());
-  }
-  return isoWeekStart;
-}
-
-const onlyDateAsString = date =>
-  date.toISOString().substr(0, 'YYYY-MM-DD'.length);
+export const MAX_RANGE_DAYS = 366;
 
 @Injectable()
 export class EntriesService {
   constructor(
-    @InjectModel(Entry)
-    private readonly entryModel: ReturnModelType<typeof Entry>,
+    @InjectModel(Entry.name) private readonly entryModel: Model<Entry>,
     private readonly metersService: MetersService,
   ) {}
 
-  async upsert(createEntryDto: Entry): Promise<Entry> {
-    const { meterId } = createEntryDto;
-    // 1. check if meter exist
-    const meter = await this.metersService.findById(meterId);
-    if (!meter) {
-      // TODO
-      throw new Error('meter not found');
+  findInRange(
+    userId: string,
+    { from, to, meterId }: FindEntriesQuery,
+  ): Promise<EntryDocument[]> {
+    const days = daysBetween(from, to);
+    if (days < 0) {
+      throw new BadRequestException('from must not be after to');
     }
-    const entry = await this.entryModel
-      .findOneAndUpdate(
-        { date: createEntryDto.date, meterId: createEntryDto.meterId },
-        createEntryDto,
-        { new: true, upsert: true },
-      )
+    if (days >= MAX_RANGE_DAYS) {
+      throw new BadRequestException(
+        `the range must not exceed ${MAX_RANGE_DAYS} days`,
+      );
+    }
+    return this.entryModel
+      .find({
+        userId: new Types.ObjectId(userId),
+        date: { $gte: from, $lte: to },
+        ...(meterId && { meterId: new Types.ObjectId(meterId) }),
+      })
+      .sort({ date: 1 })
       .exec();
-    return toEntry(entry);
   }
 
-  async findAll({ year, week, month }: FilterQuery): Promise<Entry[] | null> {
-    let query = {};
-    if (year) {
-      query = this.buildQueryByYear(year);
+  /** Creates or replaces the meter's entry for the given day. */
+  async upsert(
+    userId: string,
+    meterId: Types.ObjectId,
+    date: string,
+    value: unknown,
+  ): Promise<EntryDocument> {
+    const meter = await this.metersService.findOne(userId, meterId);
+    const error = validateEntryValue(meter, value);
+    if (error) {
+      throw new BadRequestException(error);
     }
-    year = year || new Date().getFullYear();
-    if (month) {
-      query = this.buildQueryByMonth(year, month);
-    } else if (week) {
-      query = this.buildQueryByWeek(year, week);
+    return this.entryModel
+      .findOneAndUpdate(
+        { meterId: meter._id, date },
+        { userId: meter.userId, value },
+        { upsert: true, returnDocument: 'after', runValidators: true },
+      )
+      .orFail()
+      .exec();
+  }
+
+  async remove(
+    userId: string,
+    meterId: Types.ObjectId,
+    date: string,
+  ): Promise<void> {
+    const { deletedCount } = await this.entryModel
+      .deleteOne({ userId: new Types.ObjectId(userId), meterId, date })
+      .exec();
+    if (deletedCount === 0) {
+      throw new NotFoundException('Entry not found');
     }
-    const entryDocs = await this.entryModel.find(query).exec();
-    return entryDocs.map(toEntry);
-  }
-
-  async deleteById(entryId: string): Promise<Entry> {
-    const entry = await this.entryModel.findOne({ _id: entryId }).exec();
-    await this.entryModel.deleteOne({ _id: entryId }).exec();
-    return toEntry(entry);
-  }
-
-  private buildQueryByWeek(year: number, week: number) {
-    const startDate = weekToDate(year, week);
-    const endDate = new Date(startDate.getTime() + 518400000);
-    return {
-      date: {
-        $gte: onlyDateAsString(startDate),
-        $lte: onlyDateAsString(endDate),
-      },
-    };
-  }
-
-  private buildQueryByMonth(year: number, month: number) {
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-    const endDate = new Date(Date.UTC(year, month - 1, daysInMonth, 0, 0, 0));
-    return {
-      date: {
-        $gte: onlyDateAsString(startDate),
-        $lte: onlyDateAsString(endDate),
-      },
-    };
-  }
-
-  private buildQueryByYear(year: number) {
-    const y = toNumber(year || new Date().getFullYear());
-    return {
-      date: {
-        $gte: onlyDateAsString(new Date(y, 0, 1)),
-        $lte: onlyDateAsString(new Date(y + 1, 0, 1)),
-      },
-    };
   }
 }

@@ -1,83 +1,97 @@
 import {
-  Controller,
-  Get,
-  Param,
-  UseGuards,
-  HttpStatus,
-  Request,
-  Post,
   Body,
-  Patch,
+  Controller,
   Delete,
-  NotFoundException,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { MetersService } from './meters.service';
-import { Meter } from './meter';
-import { ApiResponse } from '@nestjs/swagger';
-import { GetMeterDto } from './dto/get-meter.dto';
-import { CreateMeterDto } from './dto/create-meter.dto';
-import { PatchMeterDto } from './dto/patch-meter.dto';
+import { ParseObjectIdPipe } from '@nestjs/mongoose';
+import { Types } from 'mongoose';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { CurrentUser } from '../common/current-user.decorator.js';
+import type { AuthUser } from '../common/current-user.decorator.js';
+import { MetersService } from './meters.service.js';
+import { CreateMeterDto, MeterDto, UpdateMeterDto } from './dto/meter.dto.js';
+import { METER_TYPE_DEFINITIONS } from './meter-types.js';
+import { MeterTypeDto } from './dto/meter-type.dto.js';
 
+@ApiTags('meters')
+@Controller('meter-types')
+export class MeterTypesController {
+  /** The available meter types and the values their entries accept. */
+  @Get()
+  findAll(): MeterTypeDto[] {
+    return METER_TYPE_DEFINITIONS;
+  }
+}
+
+@ApiTags('meters')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+@UseGuards(JwtAuthGuard)
 @Controller('meters')
 export class MetersController {
   constructor(private readonly metersService: MetersService) {}
 
+  /** The meters of the logged in user. */
   @Get()
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Meters',
-    type: Meter,
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Unauthorized',
-  })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
-    description: 'Forbidden',
-  })
-  @UseGuards(AuthGuard('jwt'))
-  async getMeters(@Request() req): Promise<GetMeterDto[]> {
-    const meters = await this.metersService.findByUserId(req.user.sub);
-    return meters.map(GetMeterDto.fromDocument);
+  async findAll(@CurrentUser() { userId }: AuthUser): Promise<MeterDto[]> {
+    const meters = await this.metersService.findAll(userId);
+    return meters.map(MeterDto.from);
   }
 
+  /** A single meter of the logged in user. */
   @Get(':meterId')
-  @UseGuards(AuthGuard('jwt'))
-  async getMeter(@Param('meterId') meterId): Promise<Meter | null> {
-    return await this.metersService.findById(meterId);
+  @ApiNotFoundResponse()
+  async findOne(
+    @CurrentUser() { userId }: AuthUser,
+    @Param('meterId', ParseObjectIdPipe) meterId: Types.ObjectId,
+  ): Promise<MeterDto> {
+    return MeterDto.from(await this.metersService.findOne(userId, meterId));
   }
 
+  /** Creates a meter; see GET /meter-types for the types. */
   @Post()
-  @UseGuards(AuthGuard('jwt'))
-  async createMeter(
-    @Request() req,
-    @Body() createMeterDto: CreateMeterDto,
-  ): Promise<GetMeterDto> {
-    const meter = await this.metersService.create({
-      ...createMeterDto,
-      userId: req.user.sub
-    });
-    return GetMeterDto.fromDocument(meter);
+  @ApiBadRequestResponse()
+  async create(
+    @CurrentUser() { userId }: AuthUser,
+    @Body() dto: CreateMeterDto,
+  ): Promise<MeterDto> {
+    return MeterDto.from(await this.metersService.create(userId, dto));
   }
 
+  /** Updates the given fields; null removes an optional field. */
   @Patch(':meterId')
-  @UseGuards(AuthGuard('jwt'))
-  async updateMeter(
-    @Param('meterId') meterId,
-    @Body() patchMeterDto: PatchMeterDto,
-  ): Promise<GetMeterDto> {
-    const meter = await this.metersService.update(meterId, patchMeterDto);
-    return GetMeterDto.fromDocument(meter);
+  @ApiBadRequestResponse()
+  @ApiNotFoundResponse()
+  async update(
+    @CurrentUser() { userId }: AuthUser,
+    @Param('meterId', ParseObjectIdPipe) meterId: Types.ObjectId,
+    @Body() dto: UpdateMeterDto,
+  ): Promise<MeterDto> {
+    return MeterDto.from(await this.metersService.update(userId, meterId, dto));
   }
 
+  /** Deletes the meter and all of its entries. */
   @Delete(':meterId')
-  @UseGuards(AuthGuard('jwt'))
-  async deleteMeter(@Param('meterId') meterId): Promise<void> {
-    const deleted = await this.metersService.delete(meterId);
-    if (!deleted) {
-      throw new NotFoundException();
-    }
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNotFoundResponse()
+  remove(
+    @CurrentUser() { userId }: AuthUser,
+    @Param('meterId', ParseObjectIdPipe) meterId: Types.ObjectId,
+  ): Promise<void> {
+    return this.metersService.remove(userId, meterId);
   }
 }
