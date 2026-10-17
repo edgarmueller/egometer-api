@@ -22,7 +22,7 @@ const createUserServiceFake = () => {
   const users: User[] = [];
   return {
     async create({ email, password }: CreateUserDto): Promise<User> {
-      if (users.find((u) => u.email === email.toLowerCase())) {
+      if (users.find(u => u.email === email.toLowerCase())) {
         throw new UserAlreadyRegisteredError('User already registered');
       }
       const user = {
@@ -35,14 +35,10 @@ const createUserServiceFake = () => {
       return user;
     },
     async findOneById(id: string) {
-      return users.find((u) => u.id === id) || null;
+      return users.find(u => u.id === id) || null;
     },
     async findOneByEmail(email: string) {
-      return users.find((u) => u.email === email.toLowerCase()) || null;
-    },
-    async checkPassword(email: string, password: string) {
-      const user = users.find((u) => u.email === email.toLowerCase());
-      return bcrypt.compare(password, user.password);
+      return users.find(u => u.email === email.toLowerCase()) || null;
     },
   };
 };
@@ -63,7 +59,10 @@ describe('AuthController', () => {
             }),
           ],
         }),
-        JwtModule.register({ secret: SECRET, signOptions: { expiresIn: '1h' } }),
+        JwtModule.register({
+          secret: SECRET,
+          signOptions: { expiresIn: '1h' },
+        }),
       ],
       controllers: [AuthController],
       providers: [
@@ -140,7 +139,9 @@ describe('AuthController', () => {
       .get('/auth/me')
       .set('Authorization', `Bearer ${body.token}`)
       .expect(200);
-    expect(res.body).toEqual(expect.objectContaining({ email: 'foo@example.com' }));
+    expect(res.body).toEqual(
+      expect.objectContaining({ email: 'foo@example.com' }),
+    );
     expect(new JwtService({ secret: SECRET }).decode(body.token)).toEqual(
       expect.objectContaining({ sub: body.user.id, email: 'foo@example.com' }),
     );

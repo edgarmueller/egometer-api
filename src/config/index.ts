@@ -1,6 +1,7 @@
 export default () => ({
   features: {
-    signUp: process.env.ALLOW_SIGNUP !== 'false',
+    // Joi accepts e.g. FALSE as a boolean, so compare case-insensitively
+    signUp: String(process.env.ALLOW_SIGNUP).toLowerCase() !== 'false',
   },
   frontend: {
     host: process.env.FRONTEND_HOST,
