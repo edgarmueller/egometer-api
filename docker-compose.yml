@@ -1,8 +1,4 @@
-# Local development stack: MongoDB + API in watch mode.
-#
-#   docker compose up
-#
-# The API is served at http://localhost:3000/api/v1 and restarts on changes in src/.
+# MongoDB for local development: `npm run infra:up`, then `npm run start:dev`.
 services:
   mongo:
     # the MongoDB driver used by mongoose 5.10 officially supports up to MongoDB 4.4
@@ -16,28 +12,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  api:
-    build:
-      context: .
-      target: dev
-    ports:
-      - "127.0.0.1:3000:3000"
-    environment:
-      PORT: 3000
-      MONGODB_URI: mongodb://mongo:27017/egometer
-      # local development only, never use this secret anywhere else
-      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me-0123456789abcdef}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-true}
-    volumes:
-      - ./src:/app/src
-      - ./tsconfig.json:/app/tsconfig.json
-      - ./tsconfig.build.json:/app/tsconfig.build.json
-      - ./nest-cli.json:/app/nest-cli.json
-    depends_on:
-      mongo:
-        condition: service_healthy
 
 volumes:
   mongo-data:
