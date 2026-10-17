@@ -14,6 +14,11 @@ import config from './config';
   providers: [],
   imports: [
     ConfigModule.forRoot({
+      // earlier files take precedence; real environment variables override both
+      envFilePath:
+        process.env.NODE_ENV === 'production'
+          ? ['.env']
+          : ['.env', '.env.development'],
       load: [config],
       // validates the environment variables the config is built from
       validationSchema: Joi.object({
