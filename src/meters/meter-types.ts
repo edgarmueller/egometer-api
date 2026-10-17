@@ -11,7 +11,8 @@ export const METER_TYPES = [
 
 export type MeterType = (typeof METER_TYPES)[number];
 
-export const MOOD_VALUES = ['bad', 'down', 'okayish', 'good', 'dabomb'];
+// ordered from worst to best
+export const MOOD_VALUES = ['awful', 'bad', 'okay', 'good', 'great'];
 export const QUANTITY_VALUES = ['none', 'a_bit', 'a_lot'];
 export const DEFAULT_ACTIVITIES = [
   'work',
@@ -39,7 +40,7 @@ export const MAX_TEXT_LENGTH = 10_000;
 export const METER_TYPE_DEFINITIONS: MeterTypeDto[] = [
   {
     type: 'mood',
-    description: 'One mood per day',
+    description: 'One mood per day, from awful to great',
     values: MOOD_VALUES,
   },
   {

@@ -48,7 +48,7 @@ describe('entries (e2e)', () => {
   });
 
   it.each([
-    ['mood', 'great'],
+    ['mood', 'dabomb'],
     ['mood', 3],
     ['quantity', 'lots'],
     ['boolean', 'true'],

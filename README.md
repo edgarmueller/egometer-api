@@ -63,7 +63,7 @@ A meter tracks one thing per day. Its type decides which values its entries acce
 
 | Type         | Entry value                                                                      |
 | ------------ | -------------------------------------------------------------------------------- |
-| `mood`       | one of `bad`, `down`, `okayish`, `good`, `dabomb`                                |
+| `mood`       | one of `awful`, `bad`, `okay`, `good`, `great`                                   |
 | `quantity`   | one of `none`, `a_bit`, `a_lot`                                                  |
 | `boolean`    | `true` or `false`                                                                |
 | `number`     | any number; number meters can also have a `dailyGoal` and `weeklyGoal`           |

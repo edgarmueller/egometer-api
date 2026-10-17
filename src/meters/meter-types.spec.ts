@@ -4,7 +4,7 @@ describe('validateEntryValue', () => {
   const activities = { type: 'activities' as const, options: ['run', 'swim'] };
 
   it.each([
-    [{ type: 'mood' as const }, 'dabomb'],
+    [{ type: 'mood' as const }, 'great'],
     [{ type: 'quantity' as const }, 'none'],
     [{ type: 'boolean' as const }, true],
     [{ type: 'number' as const }, -2.5],
