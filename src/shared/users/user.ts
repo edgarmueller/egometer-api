@@ -21,7 +21,7 @@ export class User {
   @prop()
   avatarUrl: string;
 
-  @prop()
+  @prop({ type: String })
   roles: Role[];
 
   @prop()
