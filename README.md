@@ -66,9 +66,15 @@ A meter tracks one thing per day. Its type decides which values its entries acce
 | `mood`       | one of `awful`, `bad`, `okay`, `good`, `great`                                   |
 | `quantity`   | one of `none`, `a_bit`, `a_lot`                                                  |
 | `boolean`    | `true` or `false`                                                                |
-| `number`     | any number; number meters can also have a `dailyGoal` and `weeklyGoal`           |
+| `number`     | any number; number meters can also have a `dailyGoal`, a value to reach per day  |
 | `text`       | a string of up to 10,000 characters                                              |
 | `activities` | a list of distinct tags from the meter's `options` (defaults to a built-in list) |
+
+Meters can have a goal of how many days a week (1 to 7) they should be met, their `weeklyGoal`:
+a yes for `boolean` meters, reaching the `dailyGoal` (or any value without one) for `number` meters,
+more than `none` for `quantity` meters and any entry for `mood` and `text` meters. `activities`
+meters have goals per tag instead, e.g. `"tagGoals": [{ "tag": "sports", "timesPerWeek": 3 }]`;
+removing a tag from the `options` removes its goal.
 
 All endpoints below require a login and only ever see the logged in user's meters and entries.
 

@@ -51,7 +51,7 @@ export const METER_TYPE_DEFINITIONS: MeterTypeDto[] = [
   { type: 'boolean', description: 'Yes or no' },
   {
     type: 'number',
-    description: 'A number, optionally with daily and weekly goals',
+    description: 'A number, optionally with a daily goal',
   },
   {
     type: 'text',

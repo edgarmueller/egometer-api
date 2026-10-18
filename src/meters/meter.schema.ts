@@ -26,8 +26,16 @@ export class Meter {
   @Prop()
   dailyGoal?: number;
 
+  /** Days a week to meet the meter; not for activities meters */
   @Prop()
   weeklyGoal?: number;
+
+  /** Days a week to do each activity of an activities meter */
+  @Prop({
+    type: [{ tag: String, timesPerWeek: Number, _id: false }],
+    default: undefined,
+  })
+  tagGoals?: { tag: string; timesPerWeek: number }[];
 
   createdAt: Date;
   updatedAt: Date;

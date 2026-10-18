@@ -1,4 +1,5 @@
 import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -6,18 +7,37 @@ import {
   IsArray,
   IsHexColor,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsPositive,
   IsString,
+  Max,
   MaxLength,
+  Min,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 import { METER_TYPES, type MeterType } from '../meter-types.js';
 import { MeterDocument } from '../meter.schema.js';
 
 // null clears an optional field on update
 const unlessNull = ValidateIf((_object, value) => value !== null);
+
+/** How many days a week an activity should be done. */
+export class TagGoalDto {
+  /** One of the meter's options, e.g. sports */
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  tag: string;
+
+  /** @example 3 */
+  @IsInt()
+  @Min(1)
+  @Max(7)
+  timesPerWeek: number;
+}
 
 export class CreateMeterDto {
   /** @example Mood */
@@ -53,17 +73,33 @@ export class CreateMeterDto {
   @MaxLength(50, { each: true })
   options?: string[];
 
-  /** number meters only */
+  /** The value a number meter should reach on a day; number meters only */
   @IsOptional()
   @unlessNull
   @IsPositive()
   dailyGoal?: number | null;
 
-  /** number meters only */
+  /**
+   * On how many days a week the meter should be met: yes for yes/no meters,
+   * reaching the daily goal (or any value without one) for number meters,
+   * more than none for quantity meters and any entry otherwise. Not for
+   * activities meters, which have goals per tag.
+   */
   @IsOptional()
   @unlessNull
-  @IsPositive()
+  @IsInt()
+  @Min(1)
+  @Max(7)
   weeklyGoal?: number | null;
+
+  /** Goals per tag; activities meters only */
+  @IsOptional()
+  @unlessNull
+  @IsArray()
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => TagGoalDto)
+  tagGoals?: TagGoalDto[] | null;
 }
 
 /** All fields except the type, which can't be changed. */
@@ -81,6 +117,8 @@ export class MeterDto {
   options?: string[];
   dailyGoal?: number;
   weeklyGoal?: number;
+  @ApiProperty({ type: [TagGoalDto], required: false })
+  tagGoals?: TagGoalDto[];
   createdAt: Date;
   updatedAt: Date;
 
@@ -94,6 +132,10 @@ export class MeterDto {
       options: meter.options,
       dailyGoal: meter.dailyGoal,
       weeklyGoal: meter.weeklyGoal,
+      tagGoals: meter.tagGoals?.map(({ tag, timesPerWeek }) => ({
+        tag,
+        timesPerWeek,
+      })),
       createdAt: meter.createdAt,
       updatedAt: meter.updatedAt,
     };
