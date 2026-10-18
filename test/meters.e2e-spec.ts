@@ -86,28 +86,28 @@ describe('meters (e2e)', () => {
     [{ name: 'x', type: 'mood', weeklyGoal: 8 }],
     [{ name: 'x', type: 'mood', weeklyGoal: 2.5 }],
     [{ name: 'x', type: 'activities', weeklyGoal: 3 }],
-    [{ name: 'x', type: 'boolean', tagGoals: [] }],
+    [{ name: 'x', type: 'boolean', activityGoals: [] }],
     [
       {
         name: 'x',
         type: 'activities',
-        tagGoals: [{ tag: 'sports', timesPerWeek: 0 }],
+        activityGoals: [{ activity: 'sports', timesPerWeek: 0 }],
       },
     ],
     [
       {
         name: 'x',
         type: 'activities',
-        tagGoals: [{ tag: 'unknown', timesPerWeek: 3 }],
+        activityGoals: [{ activity: 'unknown', timesPerWeek: 3 }],
       },
     ],
     [
       {
         name: 'x',
         type: 'activities',
-        tagGoals: [
-          { tag: 'sports', timesPerWeek: 3 },
-          { tag: 'sports', timesPerWeek: 2 },
+        activityGoals: [
+          { activity: 'sports', timesPerWeek: 3 },
+          { activity: 'sports', timesPerWeek: 2 },
         ],
       },
     ],
@@ -115,7 +115,7 @@ describe('meters (e2e)', () => {
       {
         name: 'x',
         type: 'activities',
-        tagGoals: [{ tag: 'sports', timesPerWeek: 3, extra: true }],
+        activityGoals: [{ activity: 'sports', timesPerWeek: 3, extra: true }],
       },
     ],
     [{ name: 'x', type: 'activities', options: [] }],
@@ -174,42 +174,46 @@ describe('meters (e2e)', () => {
     }
   });
 
-  it('sets goals per tag of activities meters', async () => {
+  it('sets goals per activity of activities meters', async () => {
     const meter = (
       await alice
         .post('/meters')
         .send({
           name: 'Activities',
           type: 'activities',
-          tagGoals: [{ tag: 'sports', timesPerWeek: 3 }],
+          activityGoals: [{ activity: 'sports', timesPerWeek: 3 }],
         })
         .expect(201)
     ).body;
-    expect(meter.tagGoals).toEqual([{ tag: 'sports', timesPerWeek: 3 }]);
+    expect(meter.activityGoals).toEqual([
+      { activity: 'sports', timesPerWeek: 3 },
+    ]);
     const updated = await alice
       .patch(`/meters/${meter.id}`)
       .send({
-        tagGoals: [
-          { tag: 'sports', timesPerWeek: 2 },
-          { tag: 'reading', timesPerWeek: 5 },
+        activityGoals: [
+          { activity: 'sports', timesPerWeek: 2 },
+          { activity: 'reading', timesPerWeek: 5 },
         ],
       })
       .expect(200);
-    expect(updated.body.tagGoals).toEqual([
-      { tag: 'sports', timesPerWeek: 2 },
-      { tag: 'reading', timesPerWeek: 5 },
+    expect(updated.body.activityGoals).toEqual([
+      { activity: 'sports', timesPerWeek: 2 },
+      { activity: 'reading', timesPerWeek: 5 },
     ]);
-    // removing a tag removes its goal
+    // removing an activity removes its goal
     const pruned = await alice
       .patch(`/meters/${meter.id}`)
       .send({ options: ['reading', 'work'] })
       .expect(200);
-    expect(pruned.body.tagGoals).toEqual([{ tag: 'reading', timesPerWeek: 5 }]);
+    expect(pruned.body.activityGoals).toEqual([
+      { activity: 'reading', timesPerWeek: 5 },
+    ]);
     const cleared = await alice
       .patch(`/meters/${meter.id}`)
-      .send({ tagGoals: null })
+      .send({ activityGoals: null })
       .expect(200);
-    expect(cleared.body.tagGoals).toBeUndefined();
+    expect(cleared.body.activityGoals).toBeUndefined();
   });
 
   it("doesn't allow changing the type or owner", async () => {

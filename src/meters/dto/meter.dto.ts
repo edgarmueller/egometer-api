@@ -25,12 +25,12 @@ import { MeterDocument } from '../meter.schema.js';
 const unlessNull = ValidateIf((_object, value) => value !== null);
 
 /** How many days a week an activity should be done. */
-export class TagGoalDto {
+export class ActivityGoalDto {
   /** One of the meter's options, e.g. sports */
   @IsString()
   @IsNotEmpty()
   @MaxLength(50)
-  tag: string;
+  activity: string;
 
   /** @example 3 */
   @IsInt()
@@ -83,7 +83,7 @@ export class CreateMeterDto {
    * On how many days a week the meter should be met: yes for yes/no meters,
    * reaching the daily goal (or any value without one) for number meters,
    * more than none for quantity meters and any entry otherwise. Not for
-   * activities meters, which have goals per tag.
+   * activities meters, which have goals per activity.
    */
   @IsOptional()
   @unlessNull
@@ -92,14 +92,14 @@ export class CreateMeterDto {
   @Max(7)
   weeklyGoal?: number | null;
 
-  /** Goals per tag; activities meters only */
+  /** Goals per activity; activities meters only */
   @IsOptional()
   @unlessNull
   @IsArray()
   @ArrayMaxSize(100)
   @ValidateNested({ each: true })
-  @Type(() => TagGoalDto)
-  tagGoals?: TagGoalDto[] | null;
+  @Type(() => ActivityGoalDto)
+  activityGoals?: ActivityGoalDto[] | null;
 }
 
 /** All fields except the type, which can't be changed. */
@@ -117,8 +117,8 @@ export class MeterDto {
   options?: string[];
   dailyGoal?: number;
   weeklyGoal?: number;
-  @ApiProperty({ type: [TagGoalDto], required: false })
-  tagGoals?: TagGoalDto[];
+  @ApiProperty({ type: [ActivityGoalDto], required: false })
+  activityGoals?: ActivityGoalDto[];
   createdAt: Date;
   updatedAt: Date;
 
@@ -132,8 +132,8 @@ export class MeterDto {
       options: meter.options,
       dailyGoal: meter.dailyGoal,
       weeklyGoal: meter.weeklyGoal,
-      tagGoals: meter.tagGoals?.map(({ tag, timesPerWeek }) => ({
-        tag,
+      activityGoals: meter.activityGoals?.map(({ activity, timesPerWeek }) => ({
+        activity,
         timesPerWeek,
       })),
       createdAt: meter.createdAt,
