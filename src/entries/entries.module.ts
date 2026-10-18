@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
-import { TypegooseModule } from 'nestjs-typegoose';
-import { Entry } from './entry';
-import { EntriesService } from './entries.service';
-import { EntriesController } from './entries.controller';
-import { MetersModule } from '../meters/meters.module';
-import { SchemasModule } from '../schemas/schemas.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { MetersModule } from '../meters/meters.module.js';
+import { Entry, EntrySchema } from './entry.schema.js';
+import { EntriesService } from './entries.service.js';
+import { EntriesController } from './entries.controller.js';
 
 @Module({
-  imports: [TypegooseModule.forFeature([Entry]), MetersModule, SchemasModule],
+  imports: [
+    MongooseModule.forFeature([{ name: Entry.name, schema: EntrySchema }]),
+    MetersModule,
+  ],
   controllers: [EntriesController],
   providers: [EntriesService],
 })

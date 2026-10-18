@@ -1,87 +1,74 @@
 import {
-  Controller,
-  Get,
   Body,
-  BadRequestException,
-  HttpStatus,
-  Query,
-  Put,
-  Param,
+  Controller,
   Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { EntriesService } from './entries.service';
-import { Entry } from './entry';
-import { CreateEntryDto } from './dto/create-entry.dto';
-import { MetersService } from '../meters/meters.service';
-import { SchemasService } from '../schemas/schemas.service';
-import { GetEntryDto } from './dto/get-entry.dto';
+import { ParseObjectIdPipe } from '@nestjs/mongoose';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiNotFoundResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import { Types } from 'mongoose';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { ParseCalendarDatePipe } from '../common/calendar-date.js';
+import { CurrentUser } from '../common/current-user.decorator.js';
+import type { AuthUser } from '../common/current-user.decorator.js';
+import { EntriesService } from './entries.service.js';
+import { EntryDto, FindEntriesQuery, UpsertEntryDto } from './dto/entry.dto.js';
 
-@Controller('entries')
+@ApiTags('entries')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+@UseGuards(JwtAuthGuard)
+@Controller()
 export class EntriesController {
-  constructor(
-    private readonly entriesService: EntriesService,
-    private readonly metersService: MetersService,
-    private readonly schemasService: SchemasService,
-  ) {}
+  constructor(private readonly entriesService: EntriesService) {}
 
-  @Get()
-  @ApiQuery({
-    name: 'year',
-    description: 'Filter by year',
-    required: false,
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    type: GetEntryDto,
-    isArray: true,
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: 'Unauthenticated',
-  })
-  @UseGuards(AuthGuard('jwt'))
-  async getEntries(
-    @Query('year') year: number,
-    @Query('month') month: number,
-    @Query('week') week: number,
-  ): Promise<GetEntryDto[] | null> {
-    const entries = await this.entriesService.findAll({ year, month, week });
-    return entries.map(GetEntryDto.fromEntity);
+  /** The logged in user's entries in a date range of up to 366 days. */
+  @Get('entries')
+  @ApiBadRequestResponse()
+  async findInRange(
+    @CurrentUser() { userId }: AuthUser,
+    @Query() query: FindEntriesQuery,
+  ): Promise<EntryDto[]> {
+    const entries = await this.entriesService.findInRange(userId, query);
+    return entries.map(EntryDto.from);
   }
 
-  @Put(':date/:meterId')
-  @UseGuards(AuthGuard('jwt'))
-  async create(
-    @Param('date') date,
-    @Param('meterId') meterId,
-    @Body() createEntryDto: CreateEntryDto,
-  ): Promise<Entry> {
-    const meter = await this.metersService.findById(meterId);
-    if (!meter) {
-      throw new Error('meter not found');
-    }
-    const schema = await this.schemasService.findById(meter.schemaId);
-    const errors = await this.schemasService.validate(
-      schema.jsonSchema,
-      createEntryDto.value,
+  /** Sets the meter's value for a day, replacing an existing entry. */
+  @Put('meters/:meterId/entries/:date')
+  @ApiBadRequestResponse({ description: "Value doesn't match the meter type" })
+  @ApiNotFoundResponse({ description: 'Meter not found' })
+  async upsert(
+    @CurrentUser() { userId }: AuthUser,
+    @Param('meterId', ParseObjectIdPipe) meterId: Types.ObjectId,
+    @Param('date', ParseCalendarDatePipe) date: string,
+    @Body() { value }: UpsertEntryDto,
+  ): Promise<EntryDto> {
+    return EntryDto.from(
+      await this.entriesService.upsert(userId, meterId, date, value),
     );
-    if (errors.length > 0) {
-      throw new BadRequestException(errors);
-    }
-    const entry = await this.entriesService.upsert({
-      date,
-      meterId,
-      value: createEntryDto.value,
-    });
-    return GetEntryDto.fromEntity(entry);
   }
 
-  @Delete(':entryId')
-  @UseGuards(AuthGuard('jwt'))
-  async deleteById(@Param('entryId') entryId) {
-    return this.entriesService.deleteById(entryId);
+  /** Deletes the meter's entry for a day. */
+  @Delete('meters/:meterId/entries/:date')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiNotFoundResponse({ description: 'Entry not found' })
+  remove(
+    @CurrentUser() { userId }: AuthUser,
+    @Param('meterId', ParseObjectIdPipe) meterId: Types.ObjectId,
+    @Param('date', ParseCalendarDatePipe) date: string,
+  ): Promise<void> {
+    return this.entriesService.remove(userId, meterId, date);
   }
 }

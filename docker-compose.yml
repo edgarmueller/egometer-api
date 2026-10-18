@@ -1,17 +1,19 @@
 # MongoDB for local development: `npm run infra:up`, then `npm run start:dev`.
 services:
   mongo:
-    # the MongoDB driver used by mongoose 5.10 officially supports up to MongoDB 4.4
-    image: mongo:4.4
+    image: mongo:8.0
     ports:
       - "127.0.0.1:27017:27017"
     volumes:
-      - mongo-data:/data/db
+      # MongoDB 8 can't read the data files of the MongoDB 4.4 the API used
+      # before, so it gets a new volume; the old one can be deleted with
+      # `docker volume rm egometer-api_mongo-data`
+      - mongo8-data:/data/db
     healthcheck:
-      test: ["CMD", "mongo", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  mongo-data:
+  mongo8-data:
