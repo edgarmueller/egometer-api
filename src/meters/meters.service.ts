@@ -26,26 +26,28 @@ function checkFieldsForType(type: MeterType, dto: UpdateMeterDto) {
   }
   if (isSet(dto.weeklyGoal) && type === 'activities') {
     throw new BadRequestException(
-      'activities meters have goals per tag, see tagGoals',
+      'activities meters have goals per activity, see activityGoals',
     );
   }
-  if (isSet(dto.tagGoals) && type !== 'activities') {
+  if (isSet(dto.activityGoals) && type !== 'activities') {
     throw new BadRequestException(
-      'tag goals are only allowed for activities meters',
+      'activity goals are only allowed for activities meters',
     );
   }
 }
 
-/** Rejects goals of unknown or repeated tags. */
-function checkTagGoals(meter: MeterDocument) {
-  const tags = (meter.tagGoals ?? []).map((goal) => goal.tag);
-  if (new Set(tags).size !== tags.length) {
-    throw new BadRequestException('each tag can only have one goal');
+/** Rejects goals of unknown or repeated activities. */
+function checkActivityGoals(meter: MeterDocument) {
+  const activities = (meter.activityGoals ?? []).map((goal) => goal.activity);
+  if (new Set(activities).size !== activities.length) {
+    throw new BadRequestException('each activity can only have one goal');
   }
-  const unknown = tags.filter((tag) => !meter.options?.includes(tag));
+  const unknown = activities.filter(
+    (activity) => !meter.options?.includes(activity),
+  );
   if (unknown.length > 0) {
     throw new BadRequestException(
-      `goals of tags that aren't options of the meter: ${unknown.join(', ')}`,
+      `goals of activities that aren't options of the meter: ${unknown.join(', ')}`,
     );
   }
 }
@@ -102,7 +104,7 @@ export class MetersService {
     if (dto.type === 'activities' && !dto.options) {
       meter.options = DEFAULT_ACTIVITIES;
     }
-    checkTagGoals(meter);
+    checkActivityGoals(meter);
     return meter.save();
   }
 
@@ -114,13 +116,13 @@ export class MetersService {
     const meter = await this.findOne(userId, meterId);
     checkFieldsForType(meter.type, dto);
     applyUpdate(meter, dto);
-    if (dto.options && dto.tagGoals === undefined && meter.tagGoals) {
-      // removing a tag removes its goal
-      meter.tagGoals = meter.tagGoals.filter((goal) =>
-        dto.options!.includes(goal.tag),
+    if (dto.options && dto.activityGoals === undefined && meter.activityGoals) {
+      // removing an activity removes its goal
+      meter.activityGoals = meter.activityGoals.filter((goal) =>
+        dto.options!.includes(goal.activity),
       );
     }
-    checkTagGoals(meter);
+    checkActivityGoals(meter);
     return meter.save();
   }
 

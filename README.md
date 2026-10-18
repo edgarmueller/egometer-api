@@ -73,8 +73,8 @@ A meter tracks one thing per day. Its type decides which values its entries acce
 Meters can have a goal of how many days a week (1 to 7) they should be met, their `weeklyGoal`:
 a yes for `boolean` meters, reaching the `dailyGoal` (or any value without one) for `number` meters,
 more than `none` for `quantity` meters and any entry for `mood` and `text` meters. `activities`
-meters have goals per tag instead, e.g. `"tagGoals": [{ "tag": "sports", "timesPerWeek": 3 }]`;
-removing a tag from the `options` removes its goal.
+meters have goals per activity instead, e.g. `"activityGoals": [{ "activity": "sports", "timesPerWeek": 3 }]`;
+removing an activity from the `options` removes its goal.
 
 All endpoints below require a login and only ever see the logged in user's meters and entries.
 
